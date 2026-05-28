@@ -42,10 +42,48 @@ pub fn run() {
                 .expect("failed to open database");
             db::migrate::run(&conn).expect("failed to run migrations");
 
+            // Check autostart setting and register
+            let autostart: String = conn
+                .query_row("SELECT value FROM settings WHERE key = 'autostart'", [], |r| r.get(0))
+                .unwrap_or_else(|_| "true".into());
+
+            if autostart == "true" {
+                set_autostart(true);
+            }
+
             let state = AppState {
                 db: std::sync::Arc::new(std::sync::Mutex::new(conn)),
             };
+            let state_cleanup = state.clone();
             app.manage(state);
+
+            // Spawn periodic cleanup task (runs every hour)
+            tokio::spawn(async move {
+                loop {
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+
+                    let conn = state_cleanup.db.lock().unwrap();
+                    let max_items: i64 = conn
+                        .query_row("SELECT value FROM settings WHERE key = 'max_items'", [], |r| {
+                            r.get::<_, String>(0)
+                        })
+                        .ok()
+                        .and_then(|v| v.parse().ok())
+                        .unwrap_or(1000);
+
+                    let max_days: i64 = conn
+                        .query_row("SELECT value FROM settings WHERE key = 'max_days'", [], |r| {
+                            r.get::<_, String>(0)
+                        })
+                        .ok()
+                        .and_then(|v| v.parse().ok())
+                        .unwrap_or(30);
+
+                    if let Err(e) = crate::history::cleanup::run_cleanup(&conn, max_items, max_days) {
+                        log::error!("Cleanup failed: {}", e);
+                    }
+                }
+            });
 
             // Start clipboard monitor
             clipboard::monitor::start(app.handle().clone());
@@ -116,4 +154,52 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn set_autostart(enable: bool) {
+    unsafe {
+        let key_path = windows::core::w!("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
+
+        if enable {
+            if let Ok(exe_path) = std::env::current_exe() {
+                let path = exe_path.to_string_lossy();
+                let wide: Vec<u16> = path.encode_utf16().chain(std::iter::once(0)).collect();
+
+                let mut hkey = windows::Win32::System::Registry::HKEY::default();
+                if windows::Win32::System::Registry::RegCreateKeyExW(
+                    windows::Win32::System::Registry::HKEY_CURRENT_USER,
+                    key_path,
+                    0,
+                    None,
+                    windows::Win32::System::Registry::REG_OPTION_NON_VOLATILE,
+                    windows::Win32::System::Registry::KEY_WRITE,
+                    None,
+                    &mut hkey,
+                    None,
+                ).is_ok() {
+                    let _ = windows::Win32::System::Registry::RegSetValueExW(
+                        hkey,
+                        windows::core::w!("aPaste"),
+                        0,
+                        windows::Win32::System::Registry::REG_SZ,
+                        Some(std::slice::from_raw_parts(wide.as_ptr() as *const u8, wide.len() * 2)),
+                    );
+                }
+            }
+        } else {
+            let mut hkey = windows::Win32::System::Registry::HKEY::default();
+            if windows::Win32::System::Registry::RegOpenKeyExW(
+                windows::Win32::System::Registry::HKEY_CURRENT_USER,
+                key_path,
+                0,
+                windows::Win32::System::Registry::KEY_SET_VALUE,
+                &mut hkey,
+            ).is_ok() {
+                let _ = windows::Win32::System::Registry::RegDeleteValueW(
+                    hkey,
+                    windows::core::w!("aPaste"),
+                );
+            }
+        }
+    }
 }
