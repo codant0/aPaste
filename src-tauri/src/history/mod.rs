@@ -1,1 +1,3 @@
-// History module — stubs, will be implemented in later tasks
+pub mod manager;
+pub mod search;
+pub mod cleanup;
