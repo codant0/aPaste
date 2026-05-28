@@ -1,1 +1,71 @@
-// Clipboard writer — will be implemented in Task 5
+use windows::Win32::System::DataExchange::{
+    CloseClipboard, EmptyClipboard, OpenClipboard, SetClipboardData,
+};
+use windows::Win32::System::Memory::{
+    GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE,
+};
+use windows::Win32::UI::WindowsAndMessaging::CF_UNICODETEXT;
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    keybd_event, KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
+};
+use windows::Win32::Foundation::{HANDLE, HGLOBAL};
+
+pub fn write_text_and_paste(text: &str) -> Result<(), String> {
+    write_to_clipboard(text)?;
+    simulate_ctrl_v();
+    Ok(())
+}
+
+fn write_to_clipboard(text: &str) -> Result<(), String> {
+    unsafe {
+        // Encode as UTF-16 null-terminated
+        let wide: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
+
+        // OpenClipboard return: use .is_ok() pattern, not .expect()
+        if !OpenClipboard(None).is_ok() {
+            return Err("OpenClipboard failed".into());
+        }
+
+        let _ = EmptyClipboard();
+
+        // Allocate global memory for the UTF-16 string
+        let size = (wide.len() * 2) as usize;
+        let hglobal = GlobalAlloc(GMEM_MOVEABLE, size)
+            .map_err(|e| format!("GlobalAlloc failed: {:?}", e))?;
+
+        let ptr = GlobalLock(hglobal);
+        if ptr.is_null() {
+            let _ = CloseClipboard();
+            return Err("GlobalLock failed".into());
+        }
+
+        std::ptr::copy_nonoverlapping(wide.as_ptr(), ptr as *mut u16, wide.len());
+
+        GlobalUnlock(hglobal);
+
+        let result = SetClipboardData(
+            CF_UNICODETEXT,
+            Some(HANDLE(hglobal.0)),
+        );
+
+        let _ = CloseClipboard();
+
+        if result.is_err() {
+            return Err(format!("SetClipboardData failed: {:?}", result));
+        }
+    }
+
+    Ok(())
+}
+
+fn simulate_ctrl_v() {
+    // Brief delay for clipboard to settle
+    std::thread::sleep(std::time::Duration::from_millis(30));
+
+    unsafe {
+        keybd_event(VK_CONTROL.0 as u8, 0, 0, 0);
+        keybd_event(VK_V.0 as u8, 0, 0, 0);
+        keybd_event(VK_V.0 as u8, 0, KEYEVENTF_KEYUP.0 as u32, 0);
+        keybd_event(VK_CONTROL.0 as u8, 0, KEYEVENTF_KEYUP.0 as u32, 0);
+    }
+}
