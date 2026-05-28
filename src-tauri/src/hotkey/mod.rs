@@ -39,7 +39,7 @@ pub fn show_popup(app: &AppHandle) {
             let w_height = 480.0;
             let x = (size.width as f64 / scale) - w_width - 20.0;
             let y = (size.height as f64 / scale) - w_height - 60.0;
-            let _ = window.set_position(tauri::PhysicalPosition::new(x, y));
+            let _ = window.set_position(tauri::LogicalPosition::new(x, y));
         }
 
         let _ = window.show();
