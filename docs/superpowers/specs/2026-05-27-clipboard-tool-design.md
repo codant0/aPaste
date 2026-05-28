@@ -1,4 +1,4 @@
-# Windows Clipboard Manager — 设计方案
+# aPaste — Windows Clipboard Manager 设计方案
 
 **日期:** 2026-05-27
 **技术栈:** Tauri (Rust + React)
