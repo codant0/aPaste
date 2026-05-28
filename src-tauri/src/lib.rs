@@ -16,7 +16,20 @@ pub fn run() {
     env_logger::init();
 
     tauri::Builder::default()
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(
+            tauri_plugin_global_shortcut::Builder::new()
+                .with_handler(|_app, shortcut, event| {
+                    use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+                    if event.state == ShortcutState::Pressed {
+                        let is_match = shortcut.matches(Modifiers::SUPER, Code::KeyV)
+                            || shortcut.matches(Modifiers::SUPER | Modifiers::SHIFT, Code::KeyV);
+                        if is_match {
+                            hotkey::show_popup(_app);
+                        }
+                    }
+                })
+                .build(),
+        )
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             let app_dir = app.path().app_data_dir().expect("failed to get app data dir");
