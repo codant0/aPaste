@@ -6,7 +6,7 @@ interface Props {
 
 export function StatusBar({ totalCount, matchCount, query }: Props) {
   return (
-    <div className="px-3 py-1.5 bg-gray-900 border-t border-gray-800 flex justify-between items-center text-[11px] text-gray-600">
+    <div className="px-3 py-1.5 bg-gray-950/60 backdrop-blur-md border-t border-gray-800/50 flex justify-between items-center text-[11px] text-gray-600">
       <div className="flex gap-3">
         <span>↑↓ 导航</span>
         <span>Enter 粘贴</span>

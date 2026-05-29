@@ -7,6 +7,17 @@ mod db;
 use tauri::Manager;
 use tauri::tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
+use tauri::window::{EffectsBuilder, Effect};
+use windows::Win32::UI::WindowsAndMessaging::{
+    SetWindowLongPtrW, GetWindowRect, GWLP_WNDPROC,
+};
+use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM, RECT};
+
+const WM_NCHITTEST: u32 = 0x0084;
+const HTCAPTION: isize = 2;
+const TITLE_BAR_PX: i32 = 36;
+
+static mut ORIG_PROC: isize = 0;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -34,6 +45,27 @@ pub fn run() {
         )
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
+            // Apply Windows 11 Mica effect & install drag support
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.set_effects(
+                    EffectsBuilder::new()
+                        .effect(Effect::Mica)
+                        .build(),
+                );
+
+                // Install Win32 drag handler (WM_NCHITTEST → HTCAPTION for title bar)
+                if let Ok(hwnd) = window.hwnd() {
+                    unsafe {
+                        let prev = SetWindowLongPtrW(
+                            windows::Win32::Foundation::HWND(hwnd.0),
+                            GWLP_WNDPROC,
+                            drag_wnd_proc as *const () as isize,
+                        );
+                        ORIG_PROC = prev;
+                    }
+                }
+            }
+
             let app_dir = app.path().app_data_dir().expect("failed to get app data dir");
             std::fs::create_dir_all(&app_dir).expect("failed to create app data dir");
 
@@ -58,9 +90,9 @@ pub fn run() {
             app.manage(state);
 
             // Spawn periodic cleanup task (runs every hour)
-            tokio::spawn(async move {
+            std::thread::spawn(move || {
                 loop {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+                    std::thread::sleep(std::time::Duration::from_secs(3600));
 
                     let conn = state_cleanup.db.lock().unwrap();
                     let max_items: i64 = conn
@@ -94,7 +126,7 @@ pub fn run() {
             // Build tray menu
             let show_item = MenuItemBuilder::with_id("show", "显示窗口").build(app)?;
             let settings_item = MenuItemBuilder::with_id("settings", "设置").build(app)?;
-            let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
+            let _separator = tauri::menu::PredefinedMenuItem::separator(app)?;
             let quit_item = MenuItemBuilder::with_id("quit", "退出").build(app)?;
 
             let menu = MenuBuilder::new(app)
@@ -156,6 +188,33 @@ pub fn run() {
         .expect("error while running tauri application");
 }
 
+unsafe extern "system" fn drag_wnd_proc(
+    hwnd: HWND,
+    msg: u32,
+    wparam: WPARAM,
+    lparam: LPARAM,
+) -> LRESULT {
+    if msg == WM_NCHITTEST {
+        let x = (lparam.0 & 0xFFFF) as i16 as i32;
+        let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
+
+        let mut rect = RECT::default();
+        let _ = GetWindowRect(hwnd, &mut rect);
+
+        if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + TITLE_BAR_PX {
+            return LRESULT(HTCAPTION);
+        }
+    }
+
+    if ORIG_PROC != 0 {
+        let orig: unsafe extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT =
+            std::mem::transmute(ORIG_PROC);
+        orig(hwnd, msg, wparam, lparam)
+    } else {
+        windows::Win32::UI::WindowsAndMessaging::DefWindowProcW(hwnd, msg, wparam, lparam)
+    }
+}
+
 fn set_autostart(enable: bool) {
     unsafe {
         let key_path = windows::core::w!("Software\\Microsoft\\Windows\\CurrentVersion\\Run");
@@ -166,16 +225,10 @@ fn set_autostart(enable: bool) {
                 let wide: Vec<u16> = path.encode_utf16().chain(std::iter::once(0)).collect();
 
                 let mut hkey = windows::Win32::System::Registry::HKEY::default();
-                if windows::Win32::System::Registry::RegCreateKeyExW(
+                if windows::Win32::System::Registry::RegCreateKeyW(
                     windows::Win32::System::Registry::HKEY_CURRENT_USER,
                     key_path,
-                    0,
-                    None,
-                    windows::Win32::System::Registry::REG_OPTION_NON_VOLATILE,
-                    windows::Win32::System::Registry::KEY_WRITE,
-                    None,
                     &mut hkey,
-                    None,
                 ).is_ok() {
                     let _ = windows::Win32::System::Registry::RegSetValueExW(
                         hkey,

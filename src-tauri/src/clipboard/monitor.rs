@@ -5,19 +5,19 @@ use sha2::{Sha256, Digest};
 use tauri::{AppHandle, Emitter, Manager};
 use windows::Win32::System::DataExchange::{
     CloseClipboard, GetClipboardData, OpenClipboard,
+    AddClipboardFormatListener, RemoveClipboardFormatListener,
 };
 use windows::Win32::Foundation::{HWND, HGLOBAL};
 use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
 use windows::Win32::UI::WindowsAndMessaging::{
-    AddClipboardFormatListener, CreateWindowExW, CW_USEDEFAULT,
+    CreateWindowExW, CW_USEDEFAULT,
     DefWindowProcW, DispatchMessageW, GetForegroundWindow, GetMessageW,
-    GetWindowTextW, RegisterClassExW, RemoveClipboardFormatListener,
-    TranslateMessage, WNDCLASSEXW, HWND_MESSAGE, MSG, CF_UNICODETEXT,
+    GetWindowTextW, RegisterClassExW, TranslateMessage, WNDCLASSEXW,
+    HWND_MESSAGE, MSG, WINDOW_STYLE,
     WM_CLIPBOARDUPDATE, WM_DESTROY, WS_EX_LEFT,
 };
+use windows::Win32::System::Ole::CF_UNICODETEXT;
 use windows::Win32::System::LibraryLoader::GetModuleHandleW;
-
-const CLIPBOARD_WINDOW_CLASS: &str = "aPasteMonitor";
 
 pub fn start(app: AppHandle) {
     std::thread::spawn(move || {
@@ -38,7 +38,7 @@ pub fn start(app: AppHandle) {
                 WS_EX_LEFT,
                 windows::core::w!("aPasteMonitor"),
                 windows::core::w!(""),
-                0,
+                WINDOW_STYLE(0),
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
@@ -49,10 +49,13 @@ pub fn start(app: AppHandle) {
                 Some(&app as *const _ as *const std::ffi::c_void),
             );
 
-            if hwnd.0.is_null() {
-                log::error!("Failed to create clipboard monitor window");
-                return;
-            }
+            let hwnd = match hwnd {
+                Ok(h) => h,
+                Err(e) => {
+                    log::error!("Failed to create clipboard monitor window: {:?}", e);
+                    return;
+                }
+            };
 
             AddClipboardFormatListener(hwnd).expect("AddClipboardFormatListener failed");
 
@@ -63,7 +66,7 @@ pub fn start(app: AppHandle) {
                 if msg.message == WM_CLIPBOARDUPDATE {
                     handle_clipboard_change(&app_ref);
                 }
-                TranslateMessage(&msg);
+                let _ = TranslateMessage(&msg);
                 DispatchMessageW(&msg);
             }
         }
@@ -90,7 +93,7 @@ fn handle_clipboard_change(app: &AppHandle) {
             return;
         }
 
-        let handle = GetClipboardData(CF_UNICODETEXT);
+        let handle = GetClipboardData(CF_UNICODETEXT.0 as u32);
         if let Ok(handle) = handle {
             if !handle.0.is_null() {
                 let ptr = GlobalLock(HGLOBAL(handle.0)) as *const u16;
@@ -114,7 +117,7 @@ fn handle_clipboard_change(app: &AppHandle) {
                         }
                     }
                 }
-                GlobalUnlock(HGLOBAL(handle.0));
+                let _ = GlobalUnlock(HGLOBAL(handle.0));
             }
         }
 

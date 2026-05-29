@@ -41,8 +41,7 @@ function App() {
       } else if (e.key === "Enter") {
         e.preventDefault();
         if (items[selectedIndex]) {
-          const appWindow = getCurrentWindow();
-          appWindow.hide().then(() => {
+          getCurrentWindow().hide().then(() => {
             pasteItem(items[selectedIndex].id);
           });
         }
@@ -58,18 +57,19 @@ function App() {
   );
 
   return (
-    <div className="h-screen bg-gray-950 text-gray-200 flex flex-col select-none">
-      {/* Title bar */}
+    <div className="h-screen flex flex-col select-none backdrop-blur-xl bg-gray-950/80">
+      {/* Title bar — drag handled by Win32 WM_NCHITTEST */}
       <div
         data-tauri-drag-region
-        className="flex items-center justify-between px-3 py-1.5 bg-gray-900 border-b border-gray-800"
+        className="flex items-center justify-between px-3 py-2 cursor-grab active:cursor-grabbing bg-gray-950/60 border-b border-gray-800/50"
       >
         <span className="text-xs font-semibold text-gray-400">
           aPaste
         </span>
         <button
           onClick={clearAll}
-          className="text-[10px] text-gray-600 hover:text-red-400 transition-colors"
+          onMouseDown={(e) => e.stopPropagation()}
+          className="text-[10px] text-gray-600 hover:text-red-400 transition-colors cursor-pointer"
           title="清空全部"
         >
           清空全部
@@ -88,8 +88,7 @@ function App() {
         selectedIndex={selectedIndex}
         loading={loading}
         onSelect={(id) => {
-          const appWindow = getCurrentWindow();
-          appWindow.hide().then(() => pasteItem(id));
+          getCurrentWindow().hide().then(() => pasteItem(id));
         }}
         onDelete={deleteItem}
       />

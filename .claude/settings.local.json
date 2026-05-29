@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(C:\\\\Users\\\\Administrator\\\\.claude\\\\plugins\\\\cache\\\\superpowers-dev\\\\superpowers\\\\5.0.7\\\\skills\\\\brainstorming\\\\scripts\\\\start-server.sh *)",
-      "Bash(git add *)",
-      "Bash(git commit -m ' *)"
-    ]
-  }
-}

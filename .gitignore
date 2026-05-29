@@ -3,3 +3,5 @@ target/
 dist/
 .superpowers/
 .worktrees/
+./claude.idea/
+install-and-push.sh

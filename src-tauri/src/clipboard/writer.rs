@@ -4,11 +4,11 @@ use windows::Win32::System::DataExchange::{
 use windows::Win32::System::Memory::{
     GlobalAlloc, GlobalLock, GlobalUnlock, GMEM_MOVEABLE,
 };
-use windows::Win32::UI::WindowsAndMessaging::CF_UNICODETEXT;
+use windows::Win32::System::Ole::CF_UNICODETEXT;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    keybd_event, KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
+    keybd_event, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
 };
-use windows::Win32::Foundation::{HANDLE, HGLOBAL};
+use windows::Win32::Foundation::HANDLE;
 
 pub fn write_text_and_paste(text: &str) -> Result<(), String> {
     write_to_clipboard(text)?;
@@ -18,17 +18,14 @@ pub fn write_text_and_paste(text: &str) -> Result<(), String> {
 
 fn write_to_clipboard(text: &str) -> Result<(), String> {
     unsafe {
-        // Encode as UTF-16 null-terminated
         let wide: Vec<u16> = text.encode_utf16().chain(std::iter::once(0)).collect();
 
-        // OpenClipboard return: use .is_ok() pattern, not .expect()
         if !OpenClipboard(None).is_ok() {
             return Err("OpenClipboard failed".into());
         }
 
         let _ = EmptyClipboard();
 
-        // Allocate global memory for the UTF-16 string
         let size = (wide.len() * 2) as usize;
         let hglobal = GlobalAlloc(GMEM_MOVEABLE, size)
             .map_err(|e| format!("GlobalAlloc failed: {:?}", e))?;
@@ -41,11 +38,11 @@ fn write_to_clipboard(text: &str) -> Result<(), String> {
 
         std::ptr::copy_nonoverlapping(wide.as_ptr(), ptr as *mut u16, wide.len());
 
-        GlobalUnlock(hglobal);
+        let _ = GlobalUnlock(hglobal);
 
         let result = SetClipboardData(
-            CF_UNICODETEXT,
-            Some(HANDLE(hglobal.0)),
+            CF_UNICODETEXT.0 as u32,
+            HANDLE(hglobal.0),
         );
 
         let _ = CloseClipboard();
@@ -59,13 +56,12 @@ fn write_to_clipboard(text: &str) -> Result<(), String> {
 }
 
 fn simulate_ctrl_v() {
-    // Brief delay for clipboard to settle
     std::thread::sleep(std::time::Duration::from_millis(30));
 
     unsafe {
-        keybd_event(VK_CONTROL.0 as u8, 0, 0, 0);
-        keybd_event(VK_V.0 as u8, 0, 0, 0);
-        keybd_event(VK_V.0 as u8, 0, KEYEVENTF_KEYUP.0 as u32, 0);
-        keybd_event(VK_CONTROL.0 as u8, 0, KEYEVENTF_KEYUP.0 as u32, 0);
+        keybd_event(VK_CONTROL.0 as u8, 0, KEYBD_EVENT_FLAGS(0), 0);
+        keybd_event(VK_V.0 as u8, 0, KEYBD_EVENT_FLAGS(0), 0);
+        keybd_event(VK_V.0 as u8, 0, KEYBD_EVENT_FLAGS(KEYEVENTF_KEYUP.0), 0);
+        keybd_event(VK_CONTROL.0 as u8, 0, KEYBD_EVENT_FLAGS(KEYEVENTF_KEYUP.0), 0);
     }
 }
