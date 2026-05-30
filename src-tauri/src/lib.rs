@@ -44,7 +44,6 @@ pub fn run() {
                 })
                 .build(),
         )
-        .plugin(tauri_plugin_shell::init())
         .setup(|app| {
             // Apply Windows 11 Mica effect & install drag support
             if let Some(window) = app.get_webview_window("main") {
