@@ -14,7 +14,7 @@ function highlightMatch(text: string, query: string): string {
   const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   return escapeHtml(text).replace(
     new RegExp(`(${escapedQuery})`, "gi"),
-    "<mark class='bg-rose-500/40 text-rose-200 rounded px-0.5'>$1</mark>"
+    "<mark style='background:var(--mark-bg);color:var(--mark-text)' class='rounded-sm px-0.5'>$1</mark>"
   );
 }
 
@@ -50,26 +50,29 @@ export function ResultItem({ item, isSelected, query, onSelect, onDelete }: Prop
   return (
     <div
       onClick={onSelect}
-      className={`px-3 py-2 cursor-pointer border-l-3 transition-all duration-150 ${
+      className={`group px-3 py-2.5 cursor-pointer border-l-2 transition-all duration-150 animate-fade-in ${
         isSelected
-          ? "bg-gray-800/70 backdrop-blur-md border-l-rose-500"
-          : "border-l-transparent hover:bg-gray-800/40"
+          ? "bg-[var(--bg-selected)] border-l-[var(--accent)]"
+          : "border-l-transparent hover:bg-[var(--bg-hover)]"
       }`}
     >
       <div className="flex justify-between items-start gap-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-0.5">
-            <span className="text-[10px] text-gray-500">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-[10px] text-[var(--text-tertiary)] font-medium">
               {formatTime(item.created_at)}
             </span>
             {item.source_app && (
-              <span className="text-[10px] text-gray-600 truncate">
-                {item.source_app}
-              </span>
+              <>
+                <span className="text-[var(--text-muted2)] text-[8px]">&bull;</span>
+                <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[100px]">
+                  {item.source_app}
+                </span>
+              </>
             )}
           </div>
           <div
-            className="text-sm text-gray-300 leading-relaxed break-all line-clamp-2"
+            className="text-[13px] text-[var(--text-primary)] leading-relaxed break-all line-clamp-2"
             dangerouslySetInnerHTML={{
               __html: highlightMatch(preview, query),
             }}
@@ -80,10 +83,12 @@ export function ResultItem({ item, isSelected, query, onSelect, onDelete }: Prop
             e.stopPropagation();
             onDelete(item.id);
           }}
-          className="text-gray-600 hover:text-red-400 text-xs shrink-0 mt-1 opacity-0 group-hover:opacity-100 transition-opacity"
+          className="text-[var(--text-muted)] hover:text-red-400 text-xs shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all duration-150"
           title="删除"
         >
-          ✕
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
         </button>
       </div>
     </div>

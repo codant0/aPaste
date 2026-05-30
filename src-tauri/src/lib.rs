@@ -4,7 +4,7 @@ mod history;
 mod hotkey;
 mod db;
 
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri::tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::window::{EffectsBuilder, Effect};
@@ -14,6 +14,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM, RECT};
 
 const WM_NCHITTEST: u32 = 0x0084;
+const WM_NCLBUTTONDBLCLK: u32 = 0x00A3;
 const HTCAPTION: isize = 2;
 const TITLE_BAR_PX: i32 = 36;
 
@@ -149,7 +150,11 @@ pub fn run() {
                             }
                         }
                         "settings" => {
-                            log::info!("Settings menu clicked");
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                                let _ = window.emit("show-settings", ());
+                            }
                         }
                         "quit" => {
                             app.exit(0);
@@ -203,6 +208,19 @@ unsafe extern "system" fn drag_wnd_proc(
 
         if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + TITLE_BAR_PX {
             return LRESULT(HTCAPTION);
+        }
+    }
+
+    // Swallow double-click on title bar to prevent maximize
+    if msg == WM_NCLBUTTONDBLCLK {
+        let x = (lparam.0 & 0xFFFF) as i16 as i32;
+        let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
+
+        let mut rect = RECT::default();
+        let _ = GetWindowRect(hwnd, &mut rect);
+
+        if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + TITLE_BAR_PX {
+            return LRESULT(0);
         }
     }
 

@@ -43,7 +43,8 @@ pub fn run(conn: &Connection) -> Result<()> {
         INSERT OR IGNORE INTO settings (key, value) VALUES ('max_items', '1000');
         INSERT OR IGNORE INTO settings (key, value) VALUES ('max_days', '30');
         INSERT OR IGNORE INTO settings (key, value) VALUES ('hotkey', 'Win+Shift+V');
-        INSERT OR IGNORE INTO settings (key, value) VALUES ('autostart', 'true');"
+        INSERT OR IGNORE INTO settings (key, value) VALUES ('autostart', 'true');
+        INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'dark');"
     )?;
 
     Ok(())
@@ -61,7 +62,7 @@ mod tests {
         let count: i64 = conn
             .query_row("SELECT COUNT(*) FROM settings", [], |r| r.get(0))
             .unwrap();
-        assert_eq!(count, 4);
+        assert_eq!(count, 5);
 
         // Verify FTS table exists
         conn.execute("INSERT INTO clipboard_items (content, content_hash) VALUES ('test', 'abc')", [])
