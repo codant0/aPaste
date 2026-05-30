@@ -76,6 +76,13 @@ pub fn get_settings(state: State<'_, AppState>) -> Result<std::collections::Hash
 }
 
 #[tauri::command]
+pub fn get_count(state: State<'_, AppState>) -> Result<i64, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    conn.query_row("SELECT COUNT(*) FROM clipboard_items", [], |r| r.get(0))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn update_settings(
     state: State<'_, AppState>,
     settings: std::collections::HashMap<String, String>,

@@ -15,6 +15,16 @@ export function useClipboard() {
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchTotalCount = useCallback(async () => {
+    try {
+      const count = await invoke<number>("get_count");
+      setTotalCount(count);
+    } catch (err) {
+      console.error("Failed to fetch total count:", err);
+    }
+  }, []);
 
   const fetchItems = useCallback(async (searchQuery?: string) => {
     setLoading(true);
@@ -49,15 +59,17 @@ export function useClipboard() {
     try {
       await invoke("delete_item", { id });
       setItems((prev) => prev.filter((item) => item.id !== id));
+      fetchTotalCount();
     } catch (err) {
       console.error("Failed to delete item:", err);
     }
-  }, []);
+  }, [fetchTotalCount]);
 
   const clearAll = useCallback(async () => {
     try {
       await invoke("clear_all");
       setItems([]);
+      setTotalCount(0);
     } catch (err) {
       console.error("Failed to clear all:", err);
     }
@@ -79,9 +91,15 @@ export function useClipboard() {
     return () => clearTimeout(timer);
   }, [query, fetchItems]);
 
+  // Fetch total count on mount
+  useEffect(() => {
+    fetchTotalCount();
+  }, [fetchTotalCount]);
+
   // Listen for clipboard changes from Rust backend
   useEffect(() => {
     const unlisten = listen<string>("clipboard-changed", () => {
+      fetchTotalCount();
       if (!query.trim()) {
         fetchItems();
       }
@@ -89,12 +107,13 @@ export function useClipboard() {
     return () => {
       unlisten.then((fn) => fn());
     };
-  }, [query, fetchItems]);
+  }, [query, fetchItems, fetchTotalCount]);
 
   return {
     items,
     query,
     loading,
+    totalCount,
     selectedIndex,
     setSelectedIndex,
     search,

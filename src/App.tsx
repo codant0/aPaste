@@ -18,21 +18,16 @@ function App() {
     items,
     query,
     loading,
+    totalCount,
     selectedIndex,
     setSelectedIndex,
     search,
     deleteItem,
     clearAll,
     pasteItem,
-    fetchItems,
   } = useClipboard();
 
   useHotkey();
-
-  // Initial load
-  useEffect(() => {
-    fetchItems();
-  }, []);
 
   // Listen for show-settings event from tray menu
   useEffect(() => {
@@ -135,7 +130,7 @@ function App() {
       />
 
       <StatusBar
-        totalCount={items.length}
+        totalCount={totalCount}
         matchCount={items.length}
         query={query}
       />
