@@ -4,7 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 export type Theme = "dark" | "light";
 
 export function useTheme() {
-  const [theme, setThemeState] = useState<Theme>("dark");
+  const [theme, setThemeState] = useState<Theme>("light");
 
   useEffect(() => {
     invoke<Record<string, string>>("get_settings").then((data) => {

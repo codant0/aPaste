@@ -44,7 +44,7 @@ pub fn run(conn: &Connection) -> Result<()> {
         INSERT OR IGNORE INTO settings (key, value) VALUES ('max_days', '30');
         INSERT OR IGNORE INTO settings (key, value) VALUES ('hotkey', 'Win+Shift+V');
         INSERT OR IGNORE INTO settings (key, value) VALUES ('autostart', 'true');
-        INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'dark');"
+        INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'light');"
     )?;
 
     Ok(())
