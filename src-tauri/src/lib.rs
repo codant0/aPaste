@@ -8,18 +8,6 @@ use tauri::{Emitter, Manager};
 use tauri::tray::{TrayIconBuilder, MouseButton, MouseButtonState, TrayIconEvent};
 use tauri::menu::{MenuBuilder, MenuItemBuilder};
 use tauri::window::{EffectsBuilder, Effect};
-use windows::Win32::UI::WindowsAndMessaging::{
-    SetWindowLongPtrW, GetWindowRect, GWLP_WNDPROC,
-};
-use windows::Win32::UI::HiDpi::GetDpiForWindow;
-use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM, RECT};
-
-const WM_NCHITTEST: u32 = 0x0084;
-const WM_NCLBUTTONDBLCLK: u32 = 0x00A3;
-const HTCAPTION: isize = 2;
-const TITLE_BAR_LOGICAL: i32 = 36;
-
-static mut ORIG_PROC: isize = 0;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -33,38 +21,22 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_handler(|_app, shortcut, event| {
-                    use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+                .with_handler(|_app, _shortcut, event| {
+                    use tauri_plugin_global_shortcut::ShortcutState;
                     if event.state == ShortcutState::Pressed {
-                        let is_match = shortcut.matches(Modifiers::SUPER, Code::KeyV)
-                            || shortcut.matches(Modifiers::SUPER | Modifiers::SHIFT, Code::KeyV);
-                        if is_match {
-                            hotkey::show_popup(_app);
-                        }
+                        hotkey::show_popup(_app);
                     }
                 })
                 .build(),
         )
         .setup(|app| {
-            // Apply Windows 11 Mica effect & install drag support
+            // Apply Windows 11 Mica effect
             if let Some(window) = app.get_webview_window("main") {
                 let _ = window.set_effects(
                     EffectsBuilder::new()
                         .effect(Effect::Mica)
                         .build(),
                 );
-
-                // Install Win32 drag handler (WM_NCHITTEST → HTCAPTION for title bar)
-                if let Ok(hwnd) = window.hwnd() {
-                    unsafe {
-                        let prev = SetWindowLongPtrW(
-                            windows::Win32::Foundation::HWND(hwnd.0),
-                            GWLP_WNDPROC,
-                            drag_wnd_proc as *const () as isize,
-                        );
-                        ORIG_PROC = prev;
-                    }
-                }
             }
 
             let app_dir = app.path().app_data_dir().expect("failed to get app data dir");
@@ -193,54 +165,6 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
-}
-
-unsafe extern "system" fn drag_wnd_proc(
-    hwnd: HWND,
-    msg: u32,
-    wparam: WPARAM,
-    lparam: LPARAM,
-) -> LRESULT {
-    if msg == WM_NCHITTEST {
-        let x = (lparam.0 & 0xFFFF) as i16 as i32;
-        let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
-
-        let mut rect = RECT::default();
-        let _ = GetWindowRect(hwnd, &mut rect);
-
-        let dpi = unsafe { GetDpiForWindow(hwnd) };
-        let scale = if dpi > 0 { dpi as f64 / 96.0 } else { 1.0 };
-        let title_bar_px = (TITLE_BAR_LOGICAL as f64 * scale) as i32;
-
-        if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + title_bar_px {
-            return LRESULT(HTCAPTION);
-        }
-    }
-
-    // Swallow double-click on title bar to prevent maximize
-    if msg == WM_NCLBUTTONDBLCLK {
-        let x = (lparam.0 & 0xFFFF) as i16 as i32;
-        let y = ((lparam.0 >> 16) & 0xFFFF) as i16 as i32;
-
-        let mut rect = RECT::default();
-        let _ = GetWindowRect(hwnd, &mut rect);
-
-        let dpi = unsafe { GetDpiForWindow(hwnd) };
-        let scale = if dpi > 0 { dpi as f64 / 96.0 } else { 1.0 };
-        let title_bar_px = (TITLE_BAR_LOGICAL as f64 * scale) as i32;
-
-        if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + title_bar_px {
-            return LRESULT(0);
-        }
-    }
-
-    if ORIG_PROC != 0 {
-        let orig: unsafe extern "system" fn(HWND, u32, WPARAM, LPARAM) -> LRESULT =
-            std::mem::transmute(ORIG_PROC);
-        orig(hwnd, msg, wparam, lparam)
-    } else {
-        windows::Win32::UI::WindowsAndMessaging::DefWindowProcW(hwnd, msg, wparam, lparam)
-    }
 }
 
 fn set_autostart(enable: bool) {

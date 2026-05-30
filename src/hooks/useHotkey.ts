@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
-export function useHotkey() {
+export function useHotkey(dragging?: { current: boolean }) {
   useEffect(() => {
     const appWindow = getCurrentWindow();
 
@@ -11,9 +11,9 @@ export function useHotkey() {
       appWindow.setFocus();
     });
 
-    // Hide window on blur (click outside)
+    // Hide window on blur (click outside), but not during drag
     const unlistenBlur = appWindow.onFocusChanged(({ payload: focused }) => {
-      if (!focused) {
+      if (!focused && !dragging?.current) {
         appWindow.hide();
       }
     });
@@ -22,5 +22,5 @@ export function useHotkey() {
       unlistenShow.then((fn) => fn());
       unlistenBlur.then((fn) => fn());
     };
-  }, []);
+  }, [dragging]);
 }

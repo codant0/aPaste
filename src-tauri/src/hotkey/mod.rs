@@ -73,13 +73,13 @@ pub fn register(app_handle: &AppHandle, conn: &rusqlite::Connection) {
                 return;
             }
             Err(e) => {
-                log::warn!("Win+V unavailable ({}), falling back to Win+Shift+V", e);
-                app_handle
-                    .global_shortcut()
-                    .register(fallback)
-                    .expect("Failed to register fallback hotkey Win+Shift+V");
-                log::info!("Global hotkey registered: Win+Shift+V");
-                sync_hotkey_setting(conn, "Win+Shift+V");
+                log::warn!("Win+V unavailable ({}), trying Win+Shift+V", e);
+                if let Err(e2) = app_handle.global_shortcut().register(fallback) {
+                    log::error!("Win+Shift+V also unavailable: {}", e2);
+                } else {
+                    log::info!("Global hotkey registered: Win+Shift+V");
+                    sync_hotkey_setting(conn, "Win+Shift+V");
+                }
                 return;
             }
         }
@@ -106,12 +106,12 @@ pub fn register(app_handle: &AppHandle, conn: &rusqlite::Connection) {
             sync_hotkey_setting(conn, "Win+V");
         }
         Err(_) => {
-            app_handle
-                .global_shortcut()
-                .register(fallback)
-                .expect("Failed to register fallback hotkey Win+Shift+V");
-            log::info!("Global hotkey registered: Win+Shift+V");
-            sync_hotkey_setting(conn, "Win+Shift+V");
+            if let Err(e) = app_handle.global_shortcut().register(fallback) {
+                log::error!("All hotkey registrations failed: {}", e);
+            } else {
+                log::info!("Global hotkey registered: Win+Shift+V");
+                sync_hotkey_setting(conn, "Win+Shift+V");
+            }
         }
     }
 }

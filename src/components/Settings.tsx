@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { Theme } from "../hooks/useTheme";
 
 interface SettingsData {
@@ -109,7 +110,7 @@ export function Settings({ onBack, theme, setTheme }: Props) {
   return (
     <div className="h-screen flex flex-col select-none backdrop-blur-xl bg-[var(--bg-app)]">
       {/* Title bar */}
-      <div className="flex items-center gap-2 px-3 py-2 cursor-grab active:cursor-grabbing bg-[var(--bg-surface)] border-b border-[var(--border)]">
+      <div onMouseDown={() => getCurrentWindow().startDragging()} className="flex items-center gap-2 px-3 py-2 cursor-grab active:cursor-grabbing bg-[var(--bg-surface)] border-b border-[var(--border)]">
         <button
           onClick={onBack}
           onMouseDown={(e) => e.stopPropagation()}

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useClipboard } from "./hooks/useClipboard";
 import { useHotkey } from "./hooks/useHotkey";
 import { useTheme } from "./hooks/useTheme";
@@ -13,6 +13,9 @@ import "./App.css";
 function App() {
   const [view, setView] = useState<"main" | "settings">("main");
   const { theme, setTheme } = useTheme();
+  const dragging = useRef(false);
+  const [confirmClear, setConfirmClear] = useState(false);
+  const confirmTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const {
     items,
@@ -27,7 +30,7 @@ function App() {
     pasteItem,
   } = useClipboard();
 
-  useHotkey();
+  useHotkey(dragging);
 
   // Listen for show-settings event from tray menu
   useEffect(() => {
@@ -76,14 +79,31 @@ function App() {
     [view, items, selectedIndex, setSelectedIndex, pasteItem, deleteItem]
   );
 
+  const handleClearAll = useCallback(() => {
+    if (confirmClear) {
+      clearTimeout(confirmTimer.current);
+      setConfirmClear(false);
+      clearAll();
+    } else {
+      setConfirmClear(true);
+      confirmTimer.current = setTimeout(() => setConfirmClear(false), 3000);
+    }
+  }, [confirmClear, clearAll]);
+
   if (view === "settings") {
     return <Settings onBack={() => setView("main")} theme={theme} setTheme={setTheme} />;
   }
 
   return (
     <div className="h-screen flex flex-col select-none backdrop-blur-xl bg-[var(--bg-app)]">
-      {/* Title bar — drag handled by Win32 WM_NCHITTEST subclass */}
+      {/* Title bar — drag via startDragging API */}
       <div
+        onMouseDown={() => {
+          dragging.current = true;
+          getCurrentWindow().startDragging().finally(() => {
+            dragging.current = false;
+          });
+        }}
         className="flex items-center justify-between px-3 py-2 cursor-grab active:cursor-grabbing bg-[var(--bg-surface)] border-b border-[var(--border)]"
       >
         <span className="text-xs font-semibold text-[var(--text-secondary)]">
@@ -102,12 +122,26 @@ function App() {
             </svg>
           </button>
           <button
-            onClick={clearAll}
+            onClick={handleClearAll}
             onMouseDown={(e) => e.stopPropagation()}
-            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer px-1.5 py-0.5 rounded"
-            title="清空全部"
+            className={`text-[10px] transition-all cursor-pointer px-1.5 py-0.5 rounded ${
+              confirmClear
+                ? "text-[var(--danger)] bg-[var(--bg-hover)] font-medium"
+                : "text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-hover)]"
+            }`}
+            title={confirmClear ? "再次点击确认清空" : "清空全部"}
           >
-            清空全部
+            {confirmClear ? "确认清空？" : "清空全部"}
+          </button>
+          <button
+            onClick={() => getCurrentWindow().hide()}
+            onMouseDown={(e) => e.stopPropagation()}
+            className="text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer p-1 rounded"
+            title="关闭"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
       </div>
