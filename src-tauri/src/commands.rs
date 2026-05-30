@@ -1,5 +1,6 @@
 use crate::history::{manager, search};
 use crate::clipboard::writer;
+use crate::hotkey;
 use crate::AppState;
 use rusqlite::params;
 use tauri::State;
@@ -98,4 +99,24 @@ pub fn update_settings(
     }
     tx.commit().map_err(|e| e.to_string())?;
     Ok(())
+}
+
+#[tauri::command]
+pub fn update_hotkey(
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+    hotkey_str: String,
+) -> Result<String, String> {
+    // Try to register the new hotkey
+    let actual = hotkey::re_register(&app, &hotkey_str)?;
+
+    // Save to DB
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    conn.execute(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES ('hotkey', ?1)",
+        params![actual],
+    )
+    .map_err(|e| e.to_string())?;
+
+    Ok(actual)
 }

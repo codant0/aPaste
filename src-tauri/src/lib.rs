@@ -11,12 +11,13 @@ use tauri::window::{EffectsBuilder, Effect};
 use windows::Win32::UI::WindowsAndMessaging::{
     SetWindowLongPtrW, GetWindowRect, GWLP_WNDPROC,
 };
+use windows::Win32::UI::HiDpi::GetDpiForWindow;
 use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, WPARAM, RECT};
 
 const WM_NCHITTEST: u32 = 0x0084;
 const WM_NCLBUTTONDBLCLK: u32 = 0x00A3;
 const HTCAPTION: isize = 2;
-const TITLE_BAR_PX: i32 = 36;
+const TITLE_BAR_LOGICAL: i32 = 36;
 
 static mut ORIG_PROC: isize = 0;
 
@@ -74,10 +75,13 @@ pub fn run() {
                 .expect("failed to open database");
             db::migrate::run(&conn).expect("failed to run migrations");
 
-            // Check autostart setting and register
+            // Read settings before conn is moved into Mutex
             let autostart: String = conn
                 .query_row("SELECT value FROM settings WHERE key = 'autostart'", [], |r| r.get(0))
                 .unwrap_or_else(|_| "true".into());
+
+            // Register global hotkey (reads from DB, syncs setting on success)
+            hotkey::register(app.handle(), &conn);
 
             if autostart == "true" {
                 set_autostart(true);
@@ -119,9 +123,6 @@ pub fn run() {
 
             // Start clipboard monitor
             clipboard::monitor::start(app.handle().clone());
-
-            // Register global hotkey
-            hotkey::register(app.handle().clone());
 
             // Build tray menu
             let show_item = MenuItemBuilder::with_id("show", "显示窗口").build(app)?;
@@ -188,6 +189,7 @@ pub fn run() {
             commands::get_settings,
             commands::update_settings,
             commands::get_count,
+            commands::update_hotkey,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
@@ -206,7 +208,11 @@ unsafe extern "system" fn drag_wnd_proc(
         let mut rect = RECT::default();
         let _ = GetWindowRect(hwnd, &mut rect);
 
-        if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + TITLE_BAR_PX {
+        let dpi = unsafe { GetDpiForWindow(hwnd) };
+        let scale = if dpi > 0 { dpi as f64 / 96.0 } else { 1.0 };
+        let title_bar_px = (TITLE_BAR_LOGICAL as f64 * scale) as i32;
+
+        if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + title_bar_px {
             return LRESULT(HTCAPTION);
         }
     }
@@ -219,7 +225,11 @@ unsafe extern "system" fn drag_wnd_proc(
         let mut rect = RECT::default();
         let _ = GetWindowRect(hwnd, &mut rect);
 
-        if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + TITLE_BAR_PX {
+        let dpi = unsafe { GetDpiForWindow(hwnd) };
+        let scale = if dpi > 0 { dpi as f64 / 96.0 } else { 1.0 };
+        let title_bar_px = (TITLE_BAR_LOGICAL as f64 * scale) as i32;
+
+        if x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.top + title_bar_px {
             return LRESULT(0);
         }
     }

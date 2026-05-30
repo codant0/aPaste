@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import type { Theme } from "../hooks/useTheme";
 
@@ -15,6 +15,26 @@ interface Props {
   setTheme: (t: Theme) => void;
 }
 
+const MODIFIER_KEYS = new Set(["Control", "Shift", "Alt", "Meta"]);
+
+function formatKeyCombo(e: KeyboardEvent): string | null {
+  if (MODIFIER_KEYS.has(e.key)) return null;
+
+  const parts: string[] = [];
+  if (e.metaKey) parts.push("Win");
+  if (e.ctrlKey) parts.push("Ctrl");
+  if (e.altKey) parts.push("Alt");
+  if (e.shiftKey) parts.push("Shift");
+
+  let key = e.key;
+  if (key.length === 1) key = key.toUpperCase();
+  else if (key === " ") key = "Space";
+  else return null;
+
+  parts.push(key);
+  return parts.join("+");
+}
+
 export function Settings({ onBack, theme, setTheme }: Props) {
   const [settings, setSettings] = useState<SettingsData>({
     max_items: "1000",
@@ -23,6 +43,8 @@ export function Settings({ onBack, theme, setTheme }: Props) {
     autostart: "true",
   });
   const [saved, setSaved] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [hotkeyError, setHotkeyError] = useState("");
 
   useEffect(() => {
     invoke<Record<string, string>>("get_settings").then((data) => {
@@ -35,6 +57,39 @@ export function Settings({ onBack, theme, setTheme }: Props) {
     });
   }, []);
 
+  const handleRecordKey = useCallback((e: KeyboardEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (e.key === "Escape") {
+      setRecording(false);
+      return;
+    }
+
+    const combo = formatKeyCombo(e);
+    if (combo) {
+      setRecording(false);
+      setHotkeyError("");
+      // Save hotkey via dedicated command
+      invoke<string>("update_hotkey", { hotkeyStr: combo })
+        .then((actual) => {
+          setSettings((prev) => ({ ...prev, hotkey: actual }));
+          setSaved(true);
+          setTimeout(() => setSaved(false), 2000);
+        })
+        .catch((err) => {
+          setHotkeyError(String(err));
+        });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (recording) {
+      window.addEventListener("keydown", handleRecordKey);
+      return () => window.removeEventListener("keydown", handleRecordKey);
+    }
+  }, [recording, handleRecordKey]);
+
   const update = (key: keyof SettingsData, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
     setSaved(false);
@@ -43,6 +98,7 @@ export function Settings({ onBack, theme, setTheme }: Props) {
   const save = async () => {
     const map: Record<string, string> = {};
     for (const [k, v] of Object.entries(settings)) {
+      if (k === "hotkey") continue; // hotkey is saved via update_hotkey
       map[k] = v;
     }
     await invoke("update_settings", { settings: map });
@@ -157,16 +213,32 @@ export function Settings({ onBack, theme, setTheme }: Props) {
           <div>
             <label className="block text-xs text-[var(--text-secondary)] mb-1.5">全局快捷键</label>
             <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={settings.hotkey}
-                className="flex-1 bg-[var(--bg-input)] border border-[var(--border)] rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] outline-none"
-                readOnly
-              />
-              <span className="text-[10px] text-[var(--text-muted)]">只读</span>
+              <div
+                onClick={() => { setRecording(true); setHotkeyError(""); }}
+                className={`flex-1 bg-[var(--bg-input)] border rounded-lg px-3 py-2 text-sm text-[var(--text-primary)] cursor-pointer transition-all ${
+                  recording
+                    ? "border-[var(--accent)] bg-[var(--bg-input-focus)] animate-pulse"
+                    : "border-[var(--border)] hover:border-[var(--text-muted)]"
+                }`}
+              >
+                {recording ? (
+                  <span className="text-[var(--accent)]">按下快捷键组合...</span>
+                ) : (
+                  settings.hotkey
+                )}
+              </div>
+              <button
+                onClick={() => { setRecording(true); setHotkeyError(""); }}
+                className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer px-2 py-2 rounded hover:bg-[var(--bg-hover)]"
+              >
+                修改
+              </button>
             </div>
+            {hotkeyError && (
+              <p className="text-[10px] text-[var(--danger)] mt-1">{hotkeyError}</p>
+            )}
             <p className="text-[10px] text-[var(--text-muted)] mt-1.5">
-              修改快捷键请通过系统设置更改
+              {recording ? "按 Esc 取消" : "点击输入框或「修改」按钮录制新快捷键"}
             </p>
           </div>
         </div>
