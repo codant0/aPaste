@@ -8,7 +8,7 @@ export function useTheme() {
 
   useEffect(() => {
     invoke<Record<string, string>>("get_settings").then((data) => {
-      const t = (data.theme as Theme) || "dark";
+      const t = (data.theme as Theme) || "light";
       setThemeState(t);
       applyTheme(t);
     });
@@ -25,6 +25,9 @@ export function useTheme() {
 
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
-  root.classList.remove("dark", "light");
-  root.classList.add(theme);
+  if (theme === "dark") {
+    root.classList.add("dark");
+  } else {
+    root.classList.remove("dark");
+  }
 }

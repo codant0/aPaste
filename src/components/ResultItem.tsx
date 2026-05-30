@@ -83,7 +83,7 @@ export function ResultItem({ item, isSelected, query, onSelect, onDelete }: Prop
             e.stopPropagation();
             onDelete(item.id);
           }}
-          className="text-[var(--text-muted)] hover:text-red-400 text-xs shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all duration-150"
+          className="text-[var(--text-muted)] hover:text-[var(--danger)] text-xs shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all duration-150"
           title="删除"
         >
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

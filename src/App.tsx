@@ -103,7 +103,7 @@ function App() {
           <button
             onClick={clearAll}
             onMouseDown={(e) => e.stopPropagation()}
-            className="text-[10px] text-[var(--text-muted)] hover:text-red-400 hover:bg-[var(--bg-hover)] transition-all cursor-pointer px-1.5 py-0.5 rounded"
+            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-[var(--bg-hover)] transition-all cursor-pointer px-1.5 py-0.5 rounded"
             title="清空全部"
           >
             清空全部
