@@ -47,7 +47,13 @@ function App() {
   // Keyboard navigation
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (view === "settings") return;
+      if (view === "settings") {
+        if (e.key === "Escape") {
+          e.preventDefault();
+          setView("main");
+        }
+        return;
+      }
 
       if (e.key === "ArrowDown") {
         e.preventDefault();

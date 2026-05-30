@@ -11,13 +11,6 @@ export function useHotkey() {
       appWindow.setFocus();
     });
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        appWindow.hide();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-
     // Hide window on blur (click outside)
     const unlistenBlur = appWindow.onFocusChanged(({ payload: focused }) => {
       if (!focused) {
@@ -28,7 +21,6 @@ export function useHotkey() {
     return () => {
       unlistenShow.then((fn) => fn());
       unlistenBlur.then((fn) => fn());
-      window.removeEventListener("keydown", handleKeyDown);
     };
   }, []);
 }
