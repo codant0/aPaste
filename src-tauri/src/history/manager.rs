@@ -65,7 +65,6 @@ pub fn delete_item(conn: &Connection, id: i64) -> Result<()> {
 
 pub fn clear_all(conn: &Connection) -> Result<()> {
     conn.execute("DELETE FROM clipboard_items", [])?;
-    conn.execute("DELETE FROM clipboard_fts", [])?;
     Ok(())
 }
 

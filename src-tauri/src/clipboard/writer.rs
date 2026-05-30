@@ -8,7 +8,7 @@ use windows::Win32::System::Ole::CF_UNICODETEXT;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
     keybd_event, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
 };
-use windows::Win32::Foundation::HANDLE;
+use windows::Win32::Foundation::{HANDLE, GlobalFree};
 
 pub fn write_text_and_paste(text: &str) -> Result<(), String> {
     write_to_clipboard(text)?;
@@ -32,6 +32,7 @@ fn write_to_clipboard(text: &str) -> Result<(), String> {
 
         let ptr = GlobalLock(hglobal);
         if ptr.is_null() {
+            let _ = GlobalFree(hglobal);
             let _ = CloseClipboard();
             return Err("GlobalLock failed".into());
         }
