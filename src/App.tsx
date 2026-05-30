@@ -42,9 +42,9 @@ function App() {
     };
   }, []);
 
-  // Keyboard navigation
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+  // Keyboard navigation (global keydown so Escape works even when input loses focus)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (view === "settings") {
         if (e.key === "Escape") {
           e.preventDefault();
@@ -75,9 +75,11 @@ function App() {
         e.preventDefault();
         getCurrentWindow().hide();
       }
-    },
-    [view, items, selectedIndex, setSelectedIndex, pasteItem, deleteItem]
-  );
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [view, items, selectedIndex, setSelectedIndex, pasteItem, deleteItem]);
 
   const handleClearAll = useCallback(() => {
     if (confirmClear) {
@@ -149,7 +151,6 @@ function App() {
       <SearchBar
         query={query}
         onChange={search}
-        onKeyDown={handleKeyDown}
       />
 
       <ResultList

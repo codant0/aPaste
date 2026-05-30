@@ -1,16 +1,23 @@
 import { useRef, useEffect } from "react";
+import { listen } from "@tauri-apps/api/event";
 
 interface Props {
   query: string;
   onChange: (query: string) => void;
-  onKeyDown: (e: React.KeyboardEvent) => void;
 }
 
-export function SearchBar({ query, onChange, onKeyDown }: Props) {
+export function SearchBar({ query, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    const unlisten = listen("popup-shown", () => {
+      setTimeout(() => inputRef.current?.focus(), 50);
+    });
+    return () => { unlisten.then((fn) => fn()); };
   }, []);
 
   return (
@@ -24,7 +31,6 @@ export function SearchBar({ query, onChange, onKeyDown }: Props) {
           type="text"
           value={query}
           onChange={(e) => onChange(e.target.value)}
-          onKeyDown={onKeyDown}
           placeholder="搜索剪贴板历史..."
           className="flex-1 bg-transparent border-none outline-none text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)]"
         />
