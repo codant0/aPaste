@@ -1,88 +1,151 @@
 # aPaste
 
-Windows 剪贴板历史管理工具，基于 Tauri v2 + React 构建。按 `Win+V` 弹出搜索窗口，快速查找和粘贴历史剪贴板内容。
+> Clipboard history manager for Windows — popup, search, paste, favorite.
 
-![aPaste](src-tauri/icons/128x128@2x.png)
+Built with **Tauri v2** + **React 19** + **TypeScript** + **Tailwind CSS v4** (frontend) and **Rust** + **SQLite** (backend).
 
-## 功能特性
+## Features
 
-- **剪贴板监控** — 后台自动记录所有复制的文本内容，SHA-256 去重
-- **全文搜索** — FTS5 全文检索引擎，支持中文和前缀匹配
-- **一键粘贴** — 选中条目按 Enter，自动写入剪贴板并模拟 Ctrl+V
-- **全局快捷键** — 默认 Win+V 打开/关闭弹窗，支持自定义快捷键组合
-- **切换行为** — 同一快捷键再次按下可关闭窗口
-- **键盘导航** — 方向键选择、回车粘贴、Delete 删除、Esc 关闭
-- **窗口拖拽** — 标题栏支持拖拽移动窗口位置
-- **关闭按钮** — 标题栏 X 按钮手动关闭窗口
-- **深色/浅色主题** — 支持手动切换，浅色为默认主题
-- **Windows 11 Mica** — 毛玻璃半透明窗口背景
-- **系统托盘** — 右键菜单显示窗口、设置、退出
-- **数据管理** — 可配置最大保留条数和保留天数，后台定时自动清理
-- **清空确认** — 清空全部操作需二次确认，防止误操作
-- **开机自启** — 可选注册到 Windows 系统启动项
+- **Clipboard history** — automatically captures text copied to the Windows clipboard
+- **Instant search** — full-text search via SQLite FTS5 with prefix matching
+- **Quick paste** — Enter to paste the selected item back to any application
+- **Favorites** — star items to keep them permanently; immune to cleanup and "Clear All"
+- **Global hotkey** — Win+Shift+V to summon the popup anywhere
+- **Auto-cleanup** — configurable max items / max days; favorites are never deleted
+- **Mica blur** — Windows 11 acrylic-style translucent background
+- **Dark / Light theme** — switch in Settings, persisted across restarts
+- **Portable** — single NSIS installer, no external database server required
 
-## 快捷键
+## Prerequisites
 
-| 快捷键 | 功能 |
-|--------|------|
-| `Win+V` | 打开/关闭弹窗（默认，可自定义） |
-| `↑` / `↓` | 选择条目 |
-| `Enter` | 粘贴选中条目 |
-| `Delete` | 删除选中条目 |
-| `Esc` | 关闭窗口 |
+- **Windows 10/11** (the only supported platform)
+- **Node.js** ≥ 18 (with npm)
+- **Rust** (install via [rustup.rs](https://rustup.rs))
 
-## 技术栈
+On first Rust install, the Windows build chain is required:
+```bash
+rustup default stable-msvc
+```
 
-| 层 | 技术 |
-|----|------|
-| 框架 | Tauri v2 |
-| 前端 | React 19 + TypeScript + Tailwind CSS v4 |
-| 后端 | Rust |
-| 数据库 | SQLite (rusqlite, bundled, FTS5) |
-| 剪贴板 | Win32 Clipboard API (windows-rs 0.58) |
-| 打包 | Tauri Bundler → NSIS .exe |
-
-## 开发
-
-### 环境要求
-
-- Node.js 20+
-- Rust 1.70+
-- Windows 10/11
-
-### 启动开发服务器
+## Quick Start
 
 ```bash
+# Install frontend dependencies
 npm install
+
+# Launch dev server + Rust backend (HMR on port 1420)
 npx tauri dev
 ```
 
-### 发布构建
+Press **Win+Shift+V** to open the popup.
 
-```bash
-npx tauri build
-```
-
-产物在 `src-tauri/target/release/bundle/nsis/` 目录下。
-
-## 项目结构
+## Project Structure
 
 ```
-src/                  # React 前端
-  components/         # UI 组件 (SearchBar, ResultList, ResultItem, Settings, StatusBar)
-  hooks/              # 自定义 Hooks (useClipboard, useHotkey, useTheme)
-  styles/             # CSS 主题变量
-src-tauri/            # Rust 后端
-  src/
-    clipboard/        # 剪贴板读写 (Win32 API)
-    commands.rs       # Tauri IPC 命令
-    db/               # 数据库连接和迁移
-    history/          # 历史记录管理、搜索、清理
-    hotkey/           # 全局快捷键注册与切换
-    lib.rs            # 应用入口、窗口管理、托盘菜单
-    main.rs           # 主函数
+aPaste/
+├── src/                          # React frontend
+│   ├── App.tsx                   # Main app: keyboard nav, view routing
+│   ├── App.css                   # Global styles & scrollbar
+│   ├── hooks/
+│   │   ├── useClipboard.ts       # Data fetching, search, favorite, CRUD
+│   │   ├── useHotkey.ts          # Window show/hide, blur handling
+│   │   └── useTheme.ts           # Dark/light theme persistence
+│   └── components/
+│       ├── SearchBar.tsx         # Text input with debounce & clear
+│       ├── CategoryTabs.tsx      # "All" / "Favorites" tab switcher
+│       ├── ResultList.tsx        # Scrollable item list
+│       ├── ResultItem.tsx        # Single row: time, app, preview, ★ star
+│       ├── StatusBar.tsx         # Shortcut hints + match count
+│       └── Settings.tsx          # Theme, limits, hotkey, autostart
+├── src-tauri/                    # Rust backend
+│   ├── Cargo.toml                # Rust dependencies
+│   ├── tauri.conf.json           # Tauri window & bundle config
+│   └── src/
+│       ├── main.rs               # Windows entry point
+│       ├── lib.rs                # App bootstrap, tray, hotkey, cleanup thread
+│       ├── commands.rs           # 12 Tauri IPC commands
+│       ├── db/
+│       │   ├── connection.rs     # SQLite connection (WAL, NORMAL sync)
+│       │   └── migrate.rs        # Schema migrations + seed data
+│       ├── clipboard/
+│       │   ├── monitor.rs        # Win32 WM_CLIPBOARDUPDATE listener
+│       │   └── writer.rs         # Win32 clipboard write + Ctrl+V simulation
+│       ├── history/
+│       │   ├── manager.rs        # CRUD: add, get, delete, toggle_favorite
+│       │   ├── search.rs         # FTS5 prefix search
+│       │   └── cleanup.rs        # Periodic cleanup by age & count
+│       └── hotkey/
+│           └── mod.rs            # Global hotkey register (Win+V fallback)
+└── docs/
+    └── plans/                    # Design & implementation plans
 ```
 
-## 许可证
+## Commands
+
+| Command | Description |
+|---|---|
+| `npm install` | Install frontend dependencies |
+| `npx tauri dev` | Start dev server + Rust backend with HMR |
+| `npx tauri build` | Production build → NSIS installer |
+| `npx tsc --noEmit` | TypeScript type-check (no emit) |
+| `cargo test` | Run Rust unit tests (in-memory SQLite, no server needed) |
+
+> Run `cargo` commands from `src-tauri/` or pass `--manifest-path src-tauri/Cargo.toml`.
+
+## Architecture
+
+```
+Win32 clipboard event (WM_CLIPBOARDUPDATE)
+  → monitor.rs: reads text, SHA-256 dedup hash
+  → saves to SQLite via manager::add_item
+  → emits "clipboard-changed" event → frontend re-fetches
+
+User types in search bar
+  → useClipboard hook (150ms debounce) → invoke("search_history") or category-aware
+  → search.rs: FTS5 MATCH with prefix wildcard + special-char escaping
+
+User presses Enter on an item
+  → invoke("paste_item") → writer.rs: Win32 clipboard write + keybd_event Ctrl+V
+```
+
+### Database
+
+Single-file SQLite at `%APPDATA%/apaste/apaste.db`. Three tables:
+
+| Table | Purpose |
+|---|---|
+| `clipboard_items` | id, content, content_hash, source_app, is_favorite, created_at, last_used_at |
+| `clipboard_fts` | FTS5 virtual table (content-sync to clipboard_items) |
+| `settings` | key/value store for preferences |
+
+FTS5 is kept in sync via three triggers (after insert/delete/update on `clipboard_items`).
+
+### IPC Commands (12 total)
+
+| Command | Signature |
+|---|---|
+| `search_history` | `(query, limit?) → ClipboardItem[]` |
+| `get_recent` | `(limit?, offset?) → ClipboardItem[]` |
+| `delete_item` | `(id) → void` |
+| `clear_all` | `() → void` (skips favorites) |
+| `paste_item` | `(id) → void` |
+| `get_settings` | `() → HashMap<String, String>` |
+| `update_settings` | `(settings) → void` |
+| `get_count` | `() → i64` |
+| `update_hotkey` | `(hotkey_str, app) → String` |
+| `toggle_favorite` | `(id) → bool` |
+| `get_favorites` | `(limit?, offset?) → ClipboardItem[]` |
+| `search_favorites` | `(query, limit?) → ClipboardItem[]` |
+
+## Build Output
+
+After `npx tauri build`:
+
+```
+src-tauri/target/release/apaste.exe
+src-tauri/target/release/bundle/nsis/aPaste_0.1.0_x64-setup.exe
+```
+
+## License
 
 MIT
