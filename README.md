@@ -10,7 +10,7 @@ Built with **Tauri v2** + **React 19** + **TypeScript** + **Tailwind CSS v4** (f
 - **Instant search** — full-text search via SQLite FTS5 with prefix matching
 - **Quick paste** — Enter to paste the selected item back to any application
 - **Favorites** — star items to keep them permanently; immune to cleanup and "Clear All"
-- **Global hotkey** — Win+Shift+V to summon the popup anywhere
+- **Global hotkey** — Win+V to summon the popup anywhere (falls back to Win+Shift+V if Win+V is occupied by Windows)
 - **Auto-cleanup** — configurable max items / max days; favorites are never deleted
 - **Mica blur** — Windows 11 acrylic-style translucent background
 - **Dark / Light theme** — switch in Settings, persisted across restarts
@@ -37,7 +37,7 @@ npm install
 npx tauri dev
 ```
 
-Press **Win+Shift+V** to open the popup.
+Press **Win+V** (or **Win+Shift+V** as fallback) to open the popup.
 
 ## Usage Guide
 
@@ -49,11 +49,11 @@ Press **Win+Shift+V** to open the popup.
 
 ### Opening the Popup
 
-Press the global hotkey (**Win+Shift+V** by default) to summon the popup window. It appears at the bottom-right corner of your primary monitor, always on top of other windows.
+Press the global hotkey (**Win+V** by default) to summon the popup window. If Win+V is reserved by Windows (e.g. system shortcut), it automatically falls back to **Win+Shift+V**. The popup appears at the bottom-right corner of your primary monitor, always on top of other windows.
 
 | Action | How |
 |---|---|
-| Show popup | `Win+Shift+V` |
+| Show popup | `Win+V` (or `Win+Shift+V` if Win+V is occupied) |
 | Hide popup | `Esc` or click outside the window |
 | Show from tray | Left-click the tray icon or right-click → "显示窗口" |
 
@@ -69,7 +69,7 @@ The popup shows your most recent clipboard entries, newest first. Each item disp
 
 ### Pasting an Item
 
-1. Press `Win+Shift+V` to open the popup.
+1. Press `Win+V` (or `Win+Shift+V`) to open the popup.
 2. Use `↑` / `↓` arrow keys to highlight the item you want.
 3. Press `Enter` — the popup hides and the selected text is pasted into the focused application.
 
@@ -131,7 +131,7 @@ Left-click the tray icon to show the popup.
 
 | Shortcut | Action |
 |---|---|
-| `Win+Shift+V` | Show popup (customizable in Settings) |
+| `Win+V` / `Win+Shift+V` | Show popup (customizable in Settings) |
 | `↑` / `↓` | Navigate items |
 | `Enter` | Paste selected item |
 | `Delete` | Delete selected item |
