@@ -10,7 +10,7 @@ pub fn search(conn: &Connection, query: &str, limit: i64) -> Result<Vec<Clipboar
     };
 
     let mut stmt = conn.prepare(
-        "SELECT ci.id, ci.content, ci.source_app, ci.created_at, ci.last_used_at
+        "SELECT ci.id, ci.content, ci.source_app, ci.created_at, ci.last_used_at, ci.is_favorite
          FROM clipboard_items ci
          INNER JOIN clipboard_fts fts ON ci.id = fts.rowid
          WHERE clipboard_fts MATCH ?1
@@ -25,6 +25,7 @@ pub fn search(conn: &Connection, query: &str, limit: i64) -> Result<Vec<Clipboar
             source_app: row.get(2)?,
             created_at: row.get(3)?,
             last_used_at: row.get(4)?,
+            is_favorite: row.get(5)?,
         })
     })?.collect::<Result<Vec<_>>>()?;
 
@@ -33,6 +34,36 @@ pub fn search(conn: &Connection, query: &str, limit: i64) -> Result<Vec<Clipboar
 
 fn get_all(conn: &Connection, limit: i64) -> Result<Vec<ClipboardItem>> {
     super::manager::get_recent(conn, limit, 0)
+}
+
+pub fn search_favorites(conn: &Connection, query: &str, limit: i64) -> Result<Vec<ClipboardItem>> {
+    let escaped = escape_fts5(query);
+    if escaped.is_empty() {
+        return super::manager::get_favorites(conn, limit, 0);
+    }
+
+    let fts_query = format!("{}*", escaped);
+    let mut stmt = conn.prepare(
+        "SELECT ci.id, ci.content, ci.source_app, ci.created_at, ci.last_used_at, ci.is_favorite
+         FROM clipboard_items ci
+         INNER JOIN clipboard_fts fts ON ci.id = fts.rowid
+         WHERE clipboard_fts MATCH ?1 AND ci.is_favorite = 1
+         ORDER BY rank
+         LIMIT ?2"
+    )?;
+
+    let items = stmt.query_map(params![fts_query, limit], |row| {
+        Ok(ClipboardItem {
+            id: row.get(0)?,
+            content: row.get(1)?,
+            source_app: row.get(2)?,
+            created_at: row.get(3)?,
+            last_used_at: row.get(4)?,
+            is_favorite: row.get(5)?,
+        })
+    })?.collect::<Result<Vec<_>>>()?;
+
+    Ok(items)
 }
 
 fn escape_fts5(query: &str) -> String {
@@ -53,7 +84,7 @@ fn escape_fts5(query: &str) -> String {
 mod tests {
     use super::*;
     use crate::db::migrate;
-    use crate::history::manager::add_item;
+    use crate::history::manager::{add_item, toggle_favorite};
 
     fn setup() -> Connection {
         let conn = Connection::open_in_memory().unwrap();
@@ -84,5 +115,27 @@ mod tests {
         let conn = setup();
         let results = search(&conn, "", 10).unwrap();
         assert_eq!(results.len(), 4);
+    }
+
+    #[test]
+    fn test_search_favorites_filtered() {
+        let conn = setup();
+        // Mark items 1 and 3 as favorites
+        toggle_favorite(&conn, 1).unwrap();
+        toggle_favorite(&conn, 3).unwrap();
+
+        // Search within favorites
+        let results = search_favorites(&conn, "react", 10).unwrap();
+        assert_eq!(results.len(), 1);
+        assert_eq!(results[0].id, 1);
+
+        // Non-favorite search term returns nothing
+        let results = search_favorites(&conn, "tauri", 10).unwrap();
+        assert_eq!(results.len(), 0);
+
+        // Empty query returns all favorites
+        let results = search_favorites(&conn, "", 10).unwrap();
+        assert_eq!(results.len(), 2);
+        assert!(results.iter().all(|i| i.is_favorite));
     }
 }

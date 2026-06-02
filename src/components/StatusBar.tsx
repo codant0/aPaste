@@ -1,10 +1,13 @@
+import type { Category } from "../hooks/useClipboard";
+
 interface Props {
   totalCount: number;
   matchCount: number;
   query: string;
+  category: Category;
 }
 
-export function StatusBar({ totalCount, matchCount, query }: Props) {
+export function StatusBar({ totalCount, matchCount, query, category }: Props) {
   return (
     <div className="px-3 py-1.5 bg-[var(--bg-surface)] backdrop-blur-md border-t border-[var(--border)] flex justify-between items-center text-[10px] text-[var(--text-muted)]">
       <div className="flex items-center gap-2.5">
@@ -23,7 +26,10 @@ export function StatusBar({ totalCount, matchCount, query }: Props) {
         </span>
       </div>
       <span className="tabular-nums">
-        {query ? `${matchCount} 条匹配` : `共 ${totalCount} 条`}
+        {category === "favorites"
+          ? (query ? `${matchCount} 条匹配` : `${matchCount} 条收藏`)
+          : (query ? `${matchCount} 条匹配` : `共 ${totalCount} 条`)
+        }
       </span>
     </div>
   );

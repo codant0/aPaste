@@ -47,6 +47,12 @@ pub fn run(conn: &Connection) -> Result<()> {
         INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'light');"
     )?;
 
+    // Add is_favorite column (ignore if already exists from previous migration)
+    conn.execute(
+        "ALTER TABLE clipboard_items ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0",
+        [],
+    ).ok();
+
     Ok(())
 }
 
@@ -71,5 +77,13 @@ mod tests {
             .query_row("SELECT COUNT(*) FROM clipboard_fts WHERE clipboard_fts MATCH 'test'", [], |r| r.get(0))
             .unwrap();
         assert_eq!(fts_count, 1);
+
+        // Verify is_favorite column exists and defaults to 0
+        conn.execute("INSERT INTO clipboard_items (content, content_hash) VALUES ('fav-test', 'xyz')", [])
+            .unwrap();
+        let is_fav: bool = conn
+            .query_row("SELECT is_favorite FROM clipboard_items WHERE content_hash = 'xyz'", [], |r| r.get(0))
+            .unwrap();
+        assert!(!is_fav);
     }
 }

@@ -8,6 +8,7 @@ interface Props {
   loading: boolean;
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
+  onToggleFavorite: (id: number) => void;
 }
 
 export function ResultList({
@@ -17,6 +18,7 @@ export function ResultList({
   loading,
   onSelect,
   onDelete,
+  onToggleFavorite,
 }: Props) {
   if (loading) {
     return (
@@ -62,6 +64,7 @@ export function ResultList({
           query={query}
           onSelect={() => onSelect(item.id)}
           onDelete={onDelete}
+          onToggleFavorite={onToggleFavorite}
         />
       ))}
     </div>

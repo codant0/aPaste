@@ -162,6 +162,9 @@ pub fn run() {
             commands::update_settings,
             commands::get_count,
             commands::update_hotkey,
+            commands::toggle_favorite,
+            commands::get_favorites,
+            commands::search_favorites,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -8,6 +8,7 @@ pub struct ClipboardItem {
     pub source_app: Option<String>,
     pub created_at: String,
     pub last_used_at: Option<String>,
+    pub is_favorite: bool,
 }
 
 pub fn add_item(
@@ -39,7 +40,7 @@ pub fn add_item(
 
 pub fn get_recent(conn: &Connection, limit: i64, offset: i64) -> Result<Vec<ClipboardItem>> {
     let mut stmt = conn.prepare(
-        "SELECT id, content, source_app, created_at, last_used_at
+        "SELECT id, content, source_app, created_at, last_used_at, is_favorite
          FROM clipboard_items
          ORDER BY id DESC
          LIMIT ?1 OFFSET ?2"
@@ -52,6 +53,7 @@ pub fn get_recent(conn: &Connection, limit: i64, offset: i64) -> Result<Vec<Clip
             source_app: row.get(2)?,
             created_at: row.get(3)?,
             last_used_at: row.get(4)?,
+            is_favorite: row.get(5)?,
         })
     })?.collect::<Result<Vec<_>>>()?;
 
@@ -64,8 +66,43 @@ pub fn delete_item(conn: &Connection, id: i64) -> Result<()> {
 }
 
 pub fn clear_all(conn: &Connection) -> Result<()> {
-    conn.execute("DELETE FROM clipboard_items", [])?;
+    conn.execute("DELETE FROM clipboard_items WHERE is_favorite = 0", [])?;
     Ok(())
+}
+
+pub fn toggle_favorite(conn: &Connection, id: i64) -> Result<bool> {
+    conn.execute(
+        "UPDATE clipboard_items SET is_favorite = NOT is_favorite WHERE id = ?1",
+        params![id],
+    )?;
+    conn.query_row(
+        "SELECT is_favorite FROM clipboard_items WHERE id = ?1",
+        params![id],
+        |r| r.get(0),
+    )
+}
+
+pub fn get_favorites(conn: &Connection, limit: i64, offset: i64) -> Result<Vec<ClipboardItem>> {
+    let mut stmt = conn.prepare(
+        "SELECT id, content, source_app, created_at, last_used_at, is_favorite
+         FROM clipboard_items
+         WHERE is_favorite = 1
+         ORDER BY id DESC
+         LIMIT ?1 OFFSET ?2"
+    )?;
+
+    let items = stmt.query_map(params![limit, offset], |row| {
+        Ok(ClipboardItem {
+            id: row.get(0)?,
+            content: row.get(1)?,
+            source_app: row.get(2)?,
+            created_at: row.get(3)?,
+            last_used_at: row.get(4)?,
+            is_favorite: row.get(5)?,
+        })
+    })?.collect::<Result<Vec<_>>>()?;
+
+    Ok(items)
 }
 
 pub fn update_last_used(conn: &Connection, id: i64) -> Result<()> {
@@ -119,5 +156,61 @@ mod tests {
 
         clear_all(&conn).unwrap();
         assert_eq!(get_recent(&conn, 10, 0).unwrap().len(), 0);
+    }
+
+    fn fav_item(conn: &Connection, content: &str, hash: &str, fav: bool) {
+        add_item(conn, content, hash, None).unwrap();
+        if fav {
+            let id: i64 = conn
+                .query_row("SELECT id FROM clipboard_items WHERE content_hash = ?1", params![hash], |r| r.get(0))
+                .unwrap();
+            toggle_favorite(conn, id).unwrap();
+        }
+    }
+
+    #[test]
+    fn test_toggle_favorite() {
+        let conn = setup_db();
+        add_item(&conn, "fav me", "hf1", None).unwrap();
+        let id: i64 = conn
+            .query_row("SELECT id FROM clipboard_items WHERE content_hash = 'hf1'", [], |r| r.get(0))
+            .unwrap();
+
+        // Toggle on
+        let new_state = toggle_favorite(&conn, id).unwrap();
+        assert!(new_state);
+
+        // Toggle off
+        let new_state = toggle_favorite(&conn, id).unwrap();
+        assert!(!new_state);
+    }
+
+    #[test]
+    fn test_get_favorites() {
+        let conn = setup_db();
+        fav_item(&conn, "fav1", "hf2", true);
+        fav_item(&conn, "normal", "hf3", false);
+        fav_item(&conn, "fav2", "hf4", true);
+
+        let favs = get_favorites(&conn, 10, 0).unwrap();
+        assert_eq!(favs.len(), 2);
+        assert!(favs.iter().all(|i| i.is_favorite));
+        // Most recent first
+        assert_eq!(favs[0].content, "fav2");
+        assert_eq!(favs[1].content, "fav1");
+    }
+
+    #[test]
+    fn test_clear_all_preserves_favorites() {
+        let conn = setup_db();
+        fav_item(&conn, "keep", "hk1", true);
+        fav_item(&conn, "delete-me", "hk2", false);
+        fav_item(&conn, "also-keep", "hk3", true);
+
+        clear_all(&conn).unwrap();
+
+        let remaining = get_recent(&conn, 10, 0).unwrap();
+        assert_eq!(remaining.len(), 2);
+        assert!(remaining.iter().all(|i| i.is_favorite));
     }
 }

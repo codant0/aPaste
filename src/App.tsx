@@ -3,6 +3,7 @@ import { useClipboard } from "./hooks/useClipboard";
 import { useHotkey } from "./hooks/useHotkey";
 import { useTheme } from "./hooks/useTheme";
 import { SearchBar } from "./components/SearchBar";
+import { CategoryTabs } from "./components/CategoryTabs";
 import { ResultList } from "./components/ResultList";
 import { StatusBar } from "./components/StatusBar";
 import { Settings } from "./components/Settings";
@@ -23,10 +24,13 @@ function App() {
     loading,
     totalCount,
     selectedIndex,
+    activeCategory,
     setSelectedIndex,
+    setActiveCategory,
     search,
     deleteItem,
     clearAll,
+    toggleFavorite,
     pasteItem,
   } = useClipboard();
 
@@ -153,6 +157,11 @@ function App() {
         onChange={search}
       />
 
+      <CategoryTabs
+        active={activeCategory}
+        onChange={setActiveCategory}
+      />
+
       <ResultList
         items={items}
         query={query}
@@ -162,12 +171,14 @@ function App() {
           getCurrentWindow().hide().then(() => pasteItem(id));
         }}
         onDelete={deleteItem}
+        onToggleFavorite={toggleFavorite}
       />
 
       <StatusBar
         totalCount={totalCount}
         matchCount={items.length}
         query={query}
+        category={activeCategory}
       />
     </div>
   );

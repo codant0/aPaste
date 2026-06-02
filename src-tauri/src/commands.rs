@@ -102,6 +102,33 @@ pub fn update_settings(
 }
 
 #[tauri::command]
+pub fn toggle_favorite(state: State<'_, AppState>, id: i64) -> Result<bool, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    manager::toggle_favorite(&conn, id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn get_favorites(
+    state: State<'_, AppState>,
+    limit: Option<i64>,
+    offset: Option<i64>,
+) -> Result<Vec<manager::ClipboardItem>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    manager::get_favorites(&conn, limit.unwrap_or(50), offset.unwrap_or(0))
+        .map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn search_favorites(
+    state: State<'_, AppState>,
+    query: String,
+    limit: Option<i64>,
+) -> Result<Vec<manager::ClipboardItem>, String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    search::search_favorites(&conn, &query, limit.unwrap_or(50)).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn update_hotkey(
     state: State<'_, AppState>,
     app: tauri::AppHandle,
