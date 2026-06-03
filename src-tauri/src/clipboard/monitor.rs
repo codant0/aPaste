@@ -8,7 +8,7 @@ use windows::Win32::System::DataExchange::{
     AddClipboardFormatListener, RemoveClipboardFormatListener,
 };
 use windows::Win32::Foundation::{HWND, HGLOBAL};
-use windows::Win32::System::Memory::{GlobalLock, GlobalUnlock};
+use windows::Win32::System::Memory::{GlobalLock, GlobalSize, GlobalUnlock};
 use windows::Win32::UI::WindowsAndMessaging::{
     CreateWindowExW, CW_USEDEFAULT,
     DefWindowProcW, DispatchMessageW, GetForegroundWindow, GetMessageW,
@@ -98,7 +98,9 @@ fn handle_clipboard_change(app: &AppHandle) {
             if !handle.0.is_null() {
                 let ptr = GlobalLock(HGLOBAL(handle.0)) as *const u16;
                 if !ptr.is_null() {
-                    let len = (0..).take_while(|&i| *ptr.add(i) != 0).count();
+                    let block_size = GlobalSize(HGLOBAL(handle.0));
+                    let max_len = if block_size > 0 { block_size / 2 } else { usize::MAX };
+                    let len = (0..max_len).take_while(|&i| *ptr.add(i) != 0).count();
                     let slice = std::slice::from_raw_parts(ptr, len);
                     if let Ok(text) = String::from_utf16(slice) {
                         if !text.trim().is_empty() {
@@ -108,7 +110,13 @@ fn handle_clipboard_change(app: &AppHandle) {
                             let hash = hex::encode(&hasher.finalize()[..8]);
 
                             let state = app.state::<AppState>();
-                            let conn = state.db.lock().unwrap();
+                            let conn = match state.db.lock() {
+                                Ok(guard) => guard,
+                                Err(poisoned) => {
+                                    log::error!("Mutex poisoned in monitor thread, recovering");
+                                    poisoned.into_inner()
+                                }
+                            };
                             manager::add_item(&conn, &text, &hash, source_app.as_deref())
                                 .unwrap_or_else(|e| log::error!("Failed to save clipboard: {}", e));
 

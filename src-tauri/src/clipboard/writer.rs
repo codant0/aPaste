@@ -6,7 +6,7 @@ use windows::Win32::System::Memory::{
 };
 use windows::Win32::System::Ole::CF_UNICODETEXT;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    keybd_event, KEYBD_EVENT_FLAGS, KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
+    SendInput, INPUT, INPUT_KEYBOARD, KEYEVENTF_KEYUP, VK_CONTROL, VK_V,
 };
 use windows::Win32::Foundation::{HANDLE, GlobalFree};
 
@@ -49,6 +49,7 @@ fn write_to_clipboard(text: &str) -> Result<(), String> {
         let _ = CloseClipboard();
 
         if result.is_err() {
+            let _ = GlobalFree(hglobal);
             return Err(format!("SetClipboardData failed: {:?}", result));
         }
     }
@@ -60,9 +61,26 @@ fn simulate_ctrl_v() {
     std::thread::sleep(std::time::Duration::from_millis(30));
 
     unsafe {
-        keybd_event(VK_CONTROL.0 as u8, 0, KEYBD_EVENT_FLAGS(0), 0);
-        keybd_event(VK_V.0 as u8, 0, KEYBD_EVENT_FLAGS(0), 0);
-        keybd_event(VK_V.0 as u8, 0, KEYBD_EVENT_FLAGS(KEYEVENTF_KEYUP.0), 0);
-        keybd_event(VK_CONTROL.0 as u8, 0, KEYBD_EVENT_FLAGS(KEYEVENTF_KEYUP.0), 0);
+        let mut inputs: [INPUT; 4] = std::mem::zeroed();
+
+        // Ctrl down
+        inputs[0].r#type = INPUT_KEYBOARD;
+        inputs[0].Anonymous.ki.wVk = VK_CONTROL;
+
+        // V down
+        inputs[1].r#type = INPUT_KEYBOARD;
+        inputs[1].Anonymous.ki.wVk = VK_V;
+
+        // V up
+        inputs[2].r#type = INPUT_KEYBOARD;
+        inputs[2].Anonymous.ki.wVk = VK_V;
+        inputs[2].Anonymous.ki.dwFlags = KEYEVENTF_KEYUP;
+
+        // Ctrl up
+        inputs[3].r#type = INPUT_KEYBOARD;
+        inputs[3].Anonymous.ki.wVk = VK_CONTROL;
+        inputs[3].Anonymous.ki.dwFlags = KEYEVENTF_KEYUP;
+
+        SendInput(&inputs, std::mem::size_of::<INPUT>() as i32);
     }
 }

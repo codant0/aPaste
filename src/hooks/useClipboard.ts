@@ -74,10 +74,12 @@ export function useClipboard() {
 
   const search = useCallback((q: string) => {
     setQuery(q);
+    setSelectedIndex(0);
   }, []);
 
   const switchCategory = useCallback((cat: Category) => {
     setActiveCategory(cat);
+    setSelectedIndex(0);
   }, []);
 
   const deleteItem = useCallback(async (id: number) => {

@@ -11,10 +11,21 @@ export function useHotkey(dragging?: { current: boolean }) {
       appWindow.setFocus();
     });
 
-    // Hide window on blur (click outside), but not during drag
+    // Hide window on blur (click outside), but not during drag.
+    // Delay 150ms to let system dialogs take focus without hiding the window.
+    let blurTimer: ReturnType<typeof setTimeout> | null = null;
     const unlistenBlur = appWindow.onFocusChanged(({ payload: focused }) => {
+      if (blurTimer) {
+        clearTimeout(blurTimer);
+        blurTimer = null;
+      }
       if (!focused && !dragging?.current) {
-        appWindow.hide();
+        blurTimer = setTimeout(async () => {
+          const isFocused = await appWindow.isFocused();
+          if (!isFocused) {
+            appWindow.hide();
+          }
+        }, 150);
       }
     });
 

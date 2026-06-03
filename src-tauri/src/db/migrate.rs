@@ -47,11 +47,24 @@ pub fn run(conn: &Connection) -> Result<()> {
         INSERT OR IGNORE INTO settings (key, value) VALUES ('theme', 'light');"
     )?;
 
-    // Add is_favorite column (ignore if already exists from previous migration)
-    conn.execute(
-        "ALTER TABLE clipboard_items ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0",
-        [],
-    ).ok();
+    // Add is_favorite column if it doesn't exist
+    let has_column: bool = conn
+        .prepare("PRAGMA table_info(clipboard_items)")?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .filter_map(|r| r.ok())
+        .any(|name| name == "is_favorite");
+
+    if !has_column {
+        conn.execute(
+            "ALTER TABLE clipboard_items ADD COLUMN is_favorite INTEGER NOT NULL DEFAULT 0",
+            [],
+        )?;
+    }
+
+    // Index for global dedup queries
+    conn.execute_batch(
+        "CREATE INDEX IF NOT EXISTS idx_content_hash ON clipboard_items(content_hash);"
+    )?;
 
     Ok(())
 }

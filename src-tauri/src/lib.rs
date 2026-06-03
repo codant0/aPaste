@@ -70,7 +70,13 @@ pub fn run() {
                 loop {
                     std::thread::sleep(std::time::Duration::from_secs(3600));
 
-                    let conn = state_cleanup.db.lock().unwrap();
+                    let conn = match state_cleanup.db.lock() {
+                        Ok(guard) => guard,
+                        Err(poisoned) => {
+                            log::error!("Mutex poisoned in cleanup thread, recovering");
+                            poisoned.into_inner()
+                        }
+                    };
                     let max_items: i64 = conn
                         .query_row("SELECT value FROM settings WHERE key = 'max_items'", [], |r| {
                             r.get::<_, String>(0)
@@ -192,6 +198,7 @@ fn set_autostart(enable: bool) {
                         windows::Win32::System::Registry::REG_SZ,
                         Some(std::slice::from_raw_parts(wide.as_ptr() as *const u8, wide.len() * 2)),
                     );
+                    let _ = windows::Win32::System::Registry::RegCloseKey(hkey);
                 }
             }
         } else {
@@ -207,6 +214,7 @@ fn set_autostart(enable: bool) {
                     hkey,
                     windows::core::w!("aPaste"),
                 );
+                let _ = windows::Win32::System::Registry::RegCloseKey(hkey);
             }
         }
     }

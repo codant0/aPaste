@@ -15,7 +15,7 @@ export function SearchBar({ query, onChange }: Props) {
 
   useEffect(() => {
     const unlisten = listen("popup-shown", () => {
-      setTimeout(() => inputRef.current?.focus(), 50);
+      requestAnimationFrame(() => inputRef.current?.focus());
     });
     return () => { unlisten.then((fn) => fn()); };
   }, []);

@@ -52,7 +52,9 @@ pub fn paste_item(state: State<'_, AppState>, id: i64) -> Result<(), String> {
         .map_err(|e| format!("Item not found: {}", e))?;
 
     // Update last_used_at
-    let _ = manager::update_last_used(&conn, id);
+    if let Err(e) = manager::update_last_used(&conn, id) {
+        log::warn!("Failed to update last_used for item {}: {}", id, e);
+    }
 
     // Write to clipboard and paste
     writer::write_text_and_paste(&content).map_err(|e| e.to_string())
@@ -70,7 +72,13 @@ pub fn get_settings(state: State<'_, AppState>) -> Result<std::collections::Hash
             Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
         })
         .map_err(|e| e.to_string())?
-        .filter_map(|r| r.ok())
+        .filter_map(|r| match r {
+            Ok(pair) => Some(pair),
+            Err(e) => {
+                log::warn!("Failed to parse setting row: {}", e);
+                None
+            }
+        })
         .collect();
 
     Ok(map)
@@ -134,16 +142,36 @@ pub fn update_hotkey(
     app: tauri::AppHandle,
     hotkey_str: String,
 ) -> Result<String, String> {
-    // Try to register the new hotkey
-    let actual = hotkey::re_register(&app, &hotkey_str)?;
-
-    // Save to DB
+    // Save to DB first, then register. If registration fails, rollback.
     let conn = state.db.lock().map_err(|e| e.to_string())?;
+
+    // Read old value for rollback
+    let old_hotkey: String = conn
+        .query_row("SELECT value FROM settings WHERE key = 'hotkey'", [], |r| r.get(0))
+        .unwrap_or_else(|_| "Win+Shift+V".into());
+
+    // Write new value to DB
     conn.execute(
         "INSERT OR REPLACE INTO settings (key, value) VALUES ('hotkey', ?1)",
-        params![actual],
+        params![hotkey_str],
     )
     .map_err(|e| e.to_string())?;
 
-    Ok(actual)
+    // Release DB lock before registering hotkey
+    drop(conn);
+
+    // Register the hotkey
+    match hotkey::re_register(&app, &hotkey_str) {
+        Ok(actual) => Ok(actual),
+        Err(e) => {
+            // Rollback DB to old value
+            if let Ok(conn) = state.db.lock() {
+                let _ = conn.execute(
+                    "INSERT OR REPLACE INTO settings (key, value) VALUES ('hotkey', ?1)",
+                    params![old_hotkey],
+                );
+            }
+            Err(e)
+        }
+    }
 }

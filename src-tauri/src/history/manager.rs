@@ -17,16 +17,17 @@ pub fn add_item(
     content_hash: &str,
     source_app: Option<&str>,
 ) -> Result<()> {
-    // Check for duplicate — if last item has same hash, skip
-    let last_hash: Option<String> = conn
-        .query_row(
-            "SELECT content_hash FROM clipboard_items ORDER BY id DESC LIMIT 1",
-            [],
-            |r| r.get(0),
-        )
-        .ok();
-
-    if last_hash.as_deref() == Some(content_hash) {
+    // Check if content already exists anywhere in the database
+    if let Ok(existing_id) = conn.query_row(
+        "SELECT id FROM clipboard_items WHERE content_hash = ?1",
+        params![content_hash],
+        |r| r.get::<_, i64>(0),
+    ) {
+        // Already exists: update timestamps to bring it to the top
+        conn.execute(
+            "UPDATE clipboard_items SET created_at = datetime('now'), last_used_at = datetime('now') WHERE id = ?1",
+            params![existing_id],
+        )?;
         return Ok(());
     }
 
