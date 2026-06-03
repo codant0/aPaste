@@ -7,3 +7,4 @@ dist/
 .idea/
 install-and-push.sh
 /local_plan
+/.codegraph
