@@ -1,3 +1,4 @@
+import { useState, useRef, useEffect } from "react";
 import type { ClipboardItem } from "../hooks/useClipboard";
 
 interface Props {
@@ -7,6 +8,7 @@ interface Props {
   onSelect: () => void;
   onDelete: (id: number) => void;
   onToggleFavorite: (id: number) => void;
+  onRenameFavorite: (id: number, name: string | null) => void;
 }
 
 function highlightMatch(text: string, query: string): string {
@@ -46,10 +48,47 @@ function formatTime(dateStr: string): string {
   });
 }
 
-export function ResultItem({ item, isSelected, query, onSelect, onDelete, onToggleFavorite }: Props) {
+export function ResultItem({ item, isSelected, query, onSelect, onDelete, onToggleFavorite, onRenameFavorite }: Props) {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState("");
+  const inputRef = useRef<HTMLInputElement>(null);
   const preview = item.content.length > 120
     ? item.content.slice(0, 120) + "..."
     : item.content;
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleStartRename = () => {
+    if (item.is_favorite) {
+      setEditName(item.favorite_name || "");
+      setIsEditing(true);
+    }
+  };
+
+  const handleSaveRename = () => {
+    const newName = editName.trim() || null;
+    onRenameFavorite(item.id, newName);
+    setIsEditing(false);
+  };
+
+  const handleCancelRename = () => {
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSaveRename();
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      handleCancelRename();
+    }
+  };
 
   return (
     <div
@@ -63,15 +102,43 @@ export function ResultItem({ item, isSelected, query, onSelect, onDelete, onTogg
       <div className="flex justify-between items-start gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <span className="text-[10px] text-[var(--text-tertiary)] font-medium">
-              {formatTime(item.created_at)}
-            </span>
-            {item.source_app && (
+            {isEditing ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                onBlur={handleSaveRename}
+                onKeyDown={handleKeyDown}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="输入收藏名称..."
+                className="flex-1 text-xs bg-[var(--bg-input)] border border-[var(--border)] rounded px-2 py-0.5 outline-none focus:border-[var(--accent)] text-[var(--text-primary)]"
+              />
+            ) : (
               <>
-                <span className="text-[var(--text-muted2)] text-[8px]">&bull;</span>
-                <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[100px]">
-                  {item.source_app}
+                {item.is_favorite && item.favorite_name ? (
+                  <span
+                    className="text-xs font-medium text-yellow-500 cursor-pointer hover:text-yellow-400 truncate max-w-[150px]"
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      handleStartRename();
+                    }}
+                    title={item.favorite_name}
+                  >
+                    {item.favorite_name}
+                  </span>
+                ) : null}
+                <span className="text-[10px] text-[var(--text-tertiary)] font-medium">
+                  {formatTime(item.created_at)}
                 </span>
+                {item.source_app && (
+                  <>
+                    <span className="text-[var(--text-muted2)] text-[8px]">&bull;</span>
+                    <span className="text-[10px] text-[var(--text-muted)] truncate max-w-[100px]">
+                      {item.source_app}
+                    </span>
+                  </>
+                )}
               </>
             )}
           </div>
@@ -104,6 +171,20 @@ export function ResultItem({ item, isSelected, query, onSelect, onDelete, onTogg
               />
             </svg>
           </button>
+          {item.is_favorite && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleStartRename();
+              }}
+              className="text-[var(--text-muted)] hover:text-[var(--text-primary)] text-xs cursor-pointer p-0.5 rounded transition-colors"
+              title="重命名"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+            </button>
+          )}
           <button
             onClick={(e) => {
               e.stopPropagation();

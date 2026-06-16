@@ -116,6 +116,12 @@ pub fn toggle_favorite(state: State<'_, AppState>, id: i64) -> Result<bool, Stri
 }
 
 #[tauri::command]
+pub fn rename_favorite(state: State<'_, AppState>, id: i64, name: Option<String>) -> Result<(), String> {
+    let conn = state.db.lock().map_err(|e| e.to_string())?;
+    manager::rename_favorite(&conn, id, name.as_deref()).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 pub fn get_favorites(
     state: State<'_, AppState>,
     limit: Option<i64>,

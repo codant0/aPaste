@@ -61,6 +61,20 @@ pub fn run(conn: &Connection) -> Result<()> {
         )?;
     }
 
+    // Add favorite_name column if it doesn't exist
+    let has_favorite_name: bool = conn
+        .prepare("PRAGMA table_info(clipboard_items)")?
+        .query_map([], |row| row.get::<_, String>(1))?
+        .filter_map(|r| r.ok())
+        .any(|name| name == "favorite_name");
+
+    if !has_favorite_name {
+        conn.execute(
+            "ALTER TABLE clipboard_items ADD COLUMN favorite_name TEXT",
+            [],
+        )?;
+    }
+
     // Index for global dedup queries
     conn.execute_batch(
         "CREATE INDEX IF NOT EXISTS idx_content_hash ON clipboard_items(content_hash);"

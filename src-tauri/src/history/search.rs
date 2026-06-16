@@ -10,7 +10,7 @@ pub fn search(conn: &Connection, query: &str, limit: i64) -> Result<Vec<Clipboar
     };
 
     let mut stmt = conn.prepare(
-        "SELECT ci.id, ci.content, ci.source_app, ci.created_at, ci.last_used_at, ci.is_favorite
+        "SELECT ci.id, ci.content, ci.source_app, ci.created_at, ci.last_used_at, ci.is_favorite, ci.favorite_name
          FROM clipboard_items ci
          INNER JOIN clipboard_fts fts ON ci.id = fts.rowid
          WHERE clipboard_fts MATCH ?1
@@ -26,6 +26,7 @@ pub fn search(conn: &Connection, query: &str, limit: i64) -> Result<Vec<Clipboar
             created_at: row.get(3)?,
             last_used_at: row.get(4)?,
             is_favorite: row.get(5)?,
+            favorite_name: row.get(6)?,
         })
     })?.collect::<Result<Vec<_>>>()?;
 
@@ -44,7 +45,7 @@ pub fn search_favorites(conn: &Connection, query: &str, limit: i64) -> Result<Ve
 
     let fts_query = format!("{}*", escaped);
     let mut stmt = conn.prepare(
-        "SELECT ci.id, ci.content, ci.source_app, ci.created_at, ci.last_used_at, ci.is_favorite
+        "SELECT ci.id, ci.content, ci.source_app, ci.created_at, ci.last_used_at, ci.is_favorite, ci.favorite_name
          FROM clipboard_items ci
          INNER JOIN clipboard_fts fts ON ci.id = fts.rowid
          WHERE clipboard_fts MATCH ?1 AND ci.is_favorite = 1
@@ -60,6 +61,7 @@ pub fn search_favorites(conn: &Connection, query: &str, limit: i64) -> Result<Ve
             created_at: row.get(3)?,
             last_used_at: row.get(4)?,
             is_favorite: row.get(5)?,
+            favorite_name: row.get(6)?,
         })
     })?.collect::<Result<Vec<_>>>()?;
 

@@ -9,6 +9,7 @@ export interface ClipboardItem {
   created_at: string;
   last_used_at: string | null;
   is_favorite: boolean;
+  favorite_name: string | null;
 }
 
 export type Category = "all" | "favorites";
@@ -124,6 +125,19 @@ export function useClipboard() {
     }
   }, [activeCategory]);
 
+  const renameFavorite = useCallback(async (id: number, name: string | null) => {
+    try {
+      await invoke("rename_favorite", { id, name });
+      setItems((prev) =>
+        prev.map((item) =>
+          item.id === id ? { ...item, favorite_name: name } : item
+        )
+      );
+    } catch (err) {
+      console.error("Failed to rename favorite:", err);
+    }
+  }, []);
+
   const pasteItem = useCallback(async (id: number) => {
     try {
       await invoke("paste_item", { id });
@@ -172,6 +186,7 @@ export function useClipboard() {
     deleteItem,
     clearAll,
     toggleFavorite,
+    renameFavorite,
     pasteItem,
     fetchItems,
   };

@@ -31,6 +31,7 @@ function App() {
     deleteItem,
     clearAll,
     toggleFavorite,
+    renameFavorite,
     pasteItem,
   } = useClipboard();
 
@@ -54,6 +55,12 @@ function App() {
           e.preventDefault();
           setView("main");
         }
+        return;
+      }
+
+      // Skip global shortcuts when an input is focused (e.g., rename favorite)
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
         return;
       }
 
@@ -172,6 +179,7 @@ function App() {
         }}
         onDelete={deleteItem}
         onToggleFavorite={toggleFavorite}
+        onRenameFavorite={renameFavorite}
       />
 
       <StatusBar

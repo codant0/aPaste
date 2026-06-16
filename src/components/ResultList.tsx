@@ -9,6 +9,7 @@ interface Props {
   onSelect: (id: number) => void;
   onDelete: (id: number) => void;
   onToggleFavorite: (id: number) => void;
+  onRenameFavorite: (id: number, name: string | null) => void;
 }
 
 export function ResultList({
@@ -19,6 +20,7 @@ export function ResultList({
   onSelect,
   onDelete,
   onToggleFavorite,
+  onRenameFavorite,
 }: Props) {
   if (loading) {
     return (
@@ -65,6 +67,7 @@ export function ResultList({
           onSelect={() => onSelect(item.id)}
           onDelete={onDelete}
           onToggleFavorite={onToggleFavorite}
+          onRenameFavorite={onRenameFavorite}
         />
       ))}
     </div>

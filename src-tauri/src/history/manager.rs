@@ -9,6 +9,7 @@ pub struct ClipboardItem {
     pub created_at: String,
     pub last_used_at: Option<String>,
     pub is_favorite: bool,
+    pub favorite_name: Option<String>,
 }
 
 pub fn add_item(
@@ -41,7 +42,7 @@ pub fn add_item(
 
 pub fn get_recent(conn: &Connection, limit: i64, offset: i64) -> Result<Vec<ClipboardItem>> {
     let mut stmt = conn.prepare(
-        "SELECT id, content, source_app, created_at, last_used_at, is_favorite
+        "SELECT id, content, source_app, created_at, last_used_at, is_favorite, favorite_name
          FROM clipboard_items
          ORDER BY id DESC
          LIMIT ?1 OFFSET ?2"
@@ -55,6 +56,7 @@ pub fn get_recent(conn: &Connection, limit: i64, offset: i64) -> Result<Vec<Clip
             created_at: row.get(3)?,
             last_used_at: row.get(4)?,
             is_favorite: row.get(5)?,
+            favorite_name: row.get(6)?,
         })
     })?.collect::<Result<Vec<_>>>()?;
 
@@ -85,7 +87,7 @@ pub fn toggle_favorite(conn: &Connection, id: i64) -> Result<bool> {
 
 pub fn get_favorites(conn: &Connection, limit: i64, offset: i64) -> Result<Vec<ClipboardItem>> {
     let mut stmt = conn.prepare(
-        "SELECT id, content, source_app, created_at, last_used_at, is_favorite
+        "SELECT id, content, source_app, created_at, last_used_at, is_favorite, favorite_name
          FROM clipboard_items
          WHERE is_favorite = 1
          ORDER BY id DESC
@@ -100,6 +102,7 @@ pub fn get_favorites(conn: &Connection, limit: i64, offset: i64) -> Result<Vec<C
             created_at: row.get(3)?,
             last_used_at: row.get(4)?,
             is_favorite: row.get(5)?,
+            favorite_name: row.get(6)?,
         })
     })?.collect::<Result<Vec<_>>>()?;
 
@@ -110,6 +113,14 @@ pub fn update_last_used(conn: &Connection, id: i64) -> Result<()> {
     conn.execute(
         "UPDATE clipboard_items SET last_used_at = datetime('now') WHERE id = ?1",
         params![id],
+    )?;
+    Ok(())
+}
+
+pub fn rename_favorite(conn: &Connection, id: i64, name: Option<&str>) -> Result<()> {
+    conn.execute(
+        "UPDATE clipboard_items SET favorite_name = ?1 WHERE id = ?2 AND is_favorite = 1",
+        params![name, id],
     )?;
     Ok(())
 }
