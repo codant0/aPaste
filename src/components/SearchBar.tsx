@@ -31,6 +31,7 @@ export function SearchBar({ query, onChange }: Props) {
           type="text"
           value={query}
           onChange={(e) => onChange(e.target.value)}
+          data-keynav="true"
           placeholder="搜索剪贴板历史..."
           className="flex-1 bg-transparent border-none outline-none text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)]"
         />

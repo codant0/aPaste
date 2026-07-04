@@ -43,7 +43,7 @@ Press **Win+V** (or **Win+Shift+V** as fallback) to open the popup.
 
 ### Getting Started
 
-1. **Install** — Download the latest `aPaste_0.1.1_x64-setup.exe` from [Releases](https://github.com/codant0/aPaste/releases) and run it.
+1. **Install** — Download the latest `aPaste_0.1.2_x64-setup.exe` from [Releases](https://github.com/codant0/aPaste/releases) and run it.
 2. **Launch** — aPaste starts automatically after installation. It runs in the system tray (look for the clipboard icon).
 3. **Copy as usual** — Continue using Ctrl+C to copy text. aPaste silently records everything in the background.
 
@@ -94,13 +94,13 @@ Favorites let you pin important clipboard entries so they survive cleanup.
 3. The star turns solid gold ★ — the item is now favorited.
 
 **View favorites:**
-Click the "收藏项" tab below the search bar to see only your favorited items.
+Click the "收藏" tab below the search bar to see only your favorited items.
 
 **Un-favorite:**
 Hover over a favorited item and click the ★ again. In the favorites tab, the item disappears from the view immediately.
 
 **Search within favorites:**
-Switch to the "收藏项" tab, then type in the search bar — only favorited items are searched.
+Switch to the "收藏" tab, then type in the search bar — only favorited items are searched.
 
 ### Settings
 
@@ -132,11 +132,14 @@ Left-click the tray icon to show the popup.
 | Shortcut | Action |
 |---|---|
 | `Win+V` / `Win+Shift+V` | Show popup (customizable in Settings) |
-| `↑` / `↓` | Navigate items |
-| `Enter` | Paste selected item |
+| `↑` / `↓` | Navigate items (works while typing in search bar) |
+| `Enter` | Paste selected item (works while typing in search bar) |
+| `Tab` | Switch between "All" / "Favorites" categories |
 | `Delete` | Delete selected item |
 | `Esc` | Hide popup / cancel |
 | `←` (in Settings) | Back to main view |
+
+> **Keyboard-first:** The search bar is focused when the popup opens, but arrow keys, Enter, and Tab still navigate the list and switch categories — no need to click away from the search bar. When renaming a favorite, the rename field captures Tab/arrows so you can type freely.
 
 ## Project Structure
 
@@ -242,7 +245,7 @@ After `npx tauri build`:
 
 ```
 src-tauri/target/release/apaste.exe
-src-tauri/target/release/bundle/nsis/aPaste_0.1.0_x64-setup.exe
+src-tauri/target/release/bundle/nsis/aPaste_0.1.2_x64-setup.exe
 ```
 
 ## License

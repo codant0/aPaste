@@ -58,13 +58,19 @@ function App() {
         return;
       }
 
-      // Skip global shortcuts when an input is focused (e.g., rename favorite)
+      // Skip global shortcuts when an input is focused (e.g., rename favorite),
+      // unless it's the search bar which opts in to keyboard navigation.
       const target = e.target as HTMLElement;
-      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+      const isInput = target.tagName === "INPUT" || target.tagName === "TEXTAREA";
+      const isSearchBar = isInput && target.getAttribute("data-keynav") === "true";
+      if (isInput && !isSearchBar) {
         return;
       }
 
-      if (e.key === "ArrowDown") {
+      if (e.key === "Tab") {
+        e.preventDefault();
+        setActiveCategory(activeCategory === "all" ? "favorites" : "all");
+      } else if (e.key === "ArrowDown") {
         e.preventDefault();
         setSelectedIndex((prev) =>
           prev < items.length - 1 ? prev + 1 : prev
@@ -90,7 +96,7 @@ function App() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [view, items, selectedIndex, setSelectedIndex, pasteItem, deleteItem]);
+  }, [view, items, selectedIndex, activeCategory, setSelectedIndex, setActiveCategory, pasteItem, deleteItem]);
 
   const handleClearAll = useCallback(() => {
     if (confirmClear) {

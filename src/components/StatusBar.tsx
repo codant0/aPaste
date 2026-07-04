@@ -24,6 +24,10 @@ export function StatusBar({ totalCount, matchCount, query, category }: Props) {
           <kbd className="bg-[var(--kbd-bg)] px-1 py-0.5 rounded text-[9px] font-mono">Del</kbd>
           <span className="ml-0.5">删除</span>
         </span>
+        <span className="flex items-center gap-1">
+          <kbd className="bg-[var(--kbd-bg)] px-1 py-0.5 rounded text-[9px] font-mono">Tab</kbd>
+          <span className="ml-0.5">切换分类</span>
+        </span>
       </div>
       <span className="tabular-nums">
         {category === "favorites"
