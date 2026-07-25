@@ -51,6 +51,7 @@ function formatTime(dateStr: string): string {
 export function ResultItem({ item, isSelected, query, onSelect, onDelete, onToggleFavorite, onRenameFavorite }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
+  const [starBounce, setStarBounce] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const preview = item.content.length > 120
     ? item.content.slice(0, 120) + "..."
@@ -93,10 +94,11 @@ export function ResultItem({ item, isSelected, query, onSelect, onDelete, onTogg
   return (
     <div
       onClick={onSelect}
-      className={`group px-3 py-2.5 cursor-pointer border-l-2 transition-all duration-150 animate-fade-in ${
+      data-selected={isSelected ? "true" : undefined}
+      className={`group px-2.5 py-2.5 cursor-pointer border-l-[3px] rounded-lg transition-all duration-150 animate-fade-in ${
         isSelected
-          ? "bg-[var(--bg-selected)] border-l-[var(--accent)]"
-          : "border-l-transparent hover:bg-[var(--bg-hover)]"
+          ? "bg-[var(--bg-selected)] border-l-[var(--accent)] shadow-[var(--shadow-selected)]"
+          : "border-l-transparent hover:bg-[var(--bg-card-hover)]"
       }`}
     >
       <div className="flex justify-between items-start gap-2">
@@ -149,17 +151,23 @@ export function ResultItem({ item, isSelected, query, onSelect, onDelete, onTogg
             }}
           />
         </div>
-        <div className="flex items-center gap-0.5 shrink-0 mt-0.5 opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0 transition-all duration-150">
+        <div className={`flex items-center gap-0.5 shrink-0 mt-0.5 transition-all duration-150 ${
+          isSelected
+            ? "opacity-100 translate-x-0"
+            : "opacity-0 group-hover:opacity-100 translate-x-1 group-hover:translate-x-0"
+        }`}>
           <button
             onClick={(e) => {
               e.stopPropagation();
+              setStarBounce(true);
               onToggleFavorite(item.id);
             }}
+            onAnimationEnd={() => setStarBounce(false)}
             className={`text-xs cursor-pointer p-0.5 rounded transition-colors ${
               item.is_favorite
                 ? "text-yellow-400 hover:text-yellow-300"
                 : "text-[var(--text-muted)] hover:text-yellow-400"
-            }`}
+            } ${starBounce ? "animate-star-bounce" : ""}`}
             title={item.is_favorite ? "取消收藏" : "收藏"}
           >
             <svg className="w-3.5 h-3.5" fill={item.is_favorite ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">

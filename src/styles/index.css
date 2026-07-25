@@ -6,32 +6,40 @@ html, body {
 
 /* === Theme Variables === */
 :root {
+  /* Accent color — overridden dynamically by JS */
+  --accent: #f43f5e;
+  --accent-hover: color-mix(in srgb, var(--accent), black 15%);
+
   --bg-app: rgba(248, 250, 252, 0.92);
   --bg-surface: rgba(241, 245, 249, 0.8);
   --bg-input: rgba(241, 245, 249, 0.9);
   --bg-input-focus: rgba(255, 255, 255, 0.95);
-  --bg-selected: rgba(226, 232, 240, 0.7);
   --bg-hover: rgba(241, 245, 249, 0.6);
   --border: rgba(203, 213, 225, 0.6);
   --border-subtle: rgba(203, 213, 225, 0.35);
-  --border-focus: rgba(225, 29, 72, 0.5);
+  --border-focus: color-mix(in srgb, var(--accent) 50%, transparent);
   --text-primary: #1e293b;
   --text-secondary: #475569;
   --text-tertiary: #64748b;
   --text-muted: #94a3b8;
   --text-muted2: #cbd5e1;
-  --accent: #f43f5e;
-  --accent-hover: #e11d48;
   --danger: #dc2626;
   --scrollbar-thumb: rgba(148, 163, 184, 0.4);
   --scrollbar-thumb-hover: rgba(148, 163, 184, 0.6);
-  --mark-bg: rgba(225, 29, 72, 0.2);
-  --mark-text: #be123c;
+  --mark-bg: color-mix(in srgb, var(--accent) 20%, transparent);
+  --mark-text: color-mix(in srgb, var(--accent) 85%, black);
   --success-bg: rgba(16, 185, 129, 0.15);
   --success-text: #059669;
   --success-border: rgba(16, 185, 129, 0.3);
   --kbd-bg: rgba(226, 232, 240, 0.6);
+  --kbd-border: rgba(203, 213, 225, 0.5);
   --toggle-off: #cbd5e1;
+  --bg-card: rgba(255, 255, 255, 0.4);
+  --bg-card-hover: rgba(241, 245, 249, 0.6);
+  --border-card: rgba(226, 232, 240, 0.5);
+  --ring-focus: color-mix(in srgb, var(--accent) 12%, transparent);
+  --bg-selected: color-mix(in srgb, var(--accent) 7%, transparent);
+  --shadow-selected: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 :root.dark {
@@ -39,26 +47,30 @@ html, body {
   --bg-surface: rgba(15, 15, 20, 0.6);
   --bg-input: rgba(20, 20, 28, 0.5);
   --bg-input-focus: rgba(20, 20, 28, 0.7);
-  --bg-selected: rgba(30, 30, 40, 0.8);
   --bg-hover: rgba(30, 30, 40, 0.4);
   --border: rgba(40, 40, 55, 0.5);
   --border-subtle: rgba(40, 40, 55, 0.3);
-  --border-focus: rgba(225, 29, 72, 0.5);
+  --border-focus: color-mix(in srgb, var(--accent) 50%, transparent);
   --text-primary: #e5e7eb;
   --text-secondary: #9ca3af;
   --text-tertiary: #6b7280;
   --text-muted: #4b5563;
   --text-muted2: #374151;
-  --accent: #f43f5e;
-  --accent-hover: #e11d48;
   --danger: #f87171;
   --scrollbar-thumb: rgba(75, 85, 99, 0.4);
   --scrollbar-thumb-hover: rgba(75, 85, 99, 0.6);
-  --mark-bg: rgba(225, 29, 72, 0.3);
-  --mark-text: #fecdd3;
+  --mark-bg: color-mix(in srgb, var(--accent) 30%, transparent);
+  --mark-text: color-mix(in srgb, var(--accent) 90%, white);
   --success-bg: rgba(16, 185, 129, 0.2);
   --success-text: #34d399;
   --success-border: rgba(16, 185, 129, 0.3);
   --kbd-bg: rgba(30, 30, 40, 0.5);
+  --kbd-border: rgba(55, 65, 81, 0.5);
   --toggle-off: #374151;
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-card-hover: rgba(255, 255, 255, 0.06);
+  --border-card: rgba(255, 255, 255, 0.06);
+  --ring-focus: color-mix(in srgb, var(--accent) 20%, transparent);
+  --bg-selected: color-mix(in srgb, var(--accent) 10%, transparent);
+  --shadow-selected: 0 1px 3px rgba(0, 0, 0, 0.2);
 }

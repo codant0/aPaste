@@ -1,3 +1,4 @@
+import { useRef, useEffect } from "react";
 import type { ClipboardItem } from "../hooks/useClipboard";
 import { ResultItem } from "./ResultItem";
 
@@ -22,6 +23,16 @@ export function ResultList({
   onToggleFavorite,
   onRenameFavorite,
 }: Props) {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Scroll selected item into view when selectedIndex changes
+  useEffect(() => {
+    if (!listRef.current) return;
+    const selectedEl = listRef.current.querySelector('[data-selected="true"]');
+    if (selectedEl) {
+      selectedEl.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [selectedIndex]);
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -38,15 +49,20 @@ export function ResultList({
 
   if (items.length === 0) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-muted)] gap-2">
-        <div className="w-12 h-12 rounded-full bg-[var(--bg-hover)] flex items-center justify-center mb-1">
-          <svg className="w-6 h-6 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="flex-1 flex flex-col items-center justify-center text-[var(--text-muted)] gap-3">
+        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[var(--bg-hover)] to-transparent flex items-center justify-center">
+          <svg className="w-7 h-7 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
           </svg>
         </div>
-        <span className="text-sm">
+        <span className="text-sm font-medium">
           {query ? "无匹配结果" : "暂无剪贴板记录"}
         </span>
+        {!query && (
+          <span className="text-[11px] text-[var(--text-muted2)]">
+            复制内容后会自动出现在这里
+          </span>
+        )}
         {query && (
           <span className="text-[11px] text-[var(--text-muted2)]">
             尝试其他关键词
@@ -57,7 +73,7 @@ export function ResultList({
   }
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div ref={listRef} className="flex-1 overflow-y-auto space-y-[3px] px-1">
       {items.map((item, index) => (
         <ResultItem
           key={item.id}

@@ -13,7 +13,7 @@ import "./App.css";
 
 function App() {
   const [view, setView] = useState<"main" | "settings">("main");
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, accentColor, setAccentColor } = useTheme();
   const dragging = useRef(false);
   const [confirmClear, setConfirmClear] = useState(false);
   const confirmTimer = useRef<ReturnType<typeof setTimeout>>();
@@ -110,7 +110,7 @@ function App() {
   }, [confirmClear, clearAll]);
 
   if (view === "settings") {
-    return <Settings onBack={() => setView("main")} theme={theme} setTheme={setTheme} />;
+    return <Settings onBack={() => setView("main")} theme={theme} setTheme={setTheme} accentColor={accentColor} setAccentColor={setAccentColor} />;
   }
 
   return (
@@ -123,9 +123,10 @@ function App() {
             dragging.current = false;
           });
         }}
-        className="flex items-center justify-between px-3 py-2 cursor-grab active:cursor-grabbing bg-[var(--bg-surface)] border-b border-[var(--border)]"
+        className="flex items-center justify-between px-3 py-2 cursor-grab active:cursor-grabbing bg-[var(--bg-surface)]"
       >
-        <span className="text-xs font-semibold text-[var(--text-secondary)]">
+        <span className="flex items-center gap-1.5 text-xs font-semibold text-[var(--text-secondary)]">
+          <span className="title-dot w-2 h-2 rounded-full inline-block" />
           aPaste
         </span>
         <div className="flex items-center gap-0.5">
@@ -164,6 +165,7 @@ function App() {
           </button>
         </div>
       </div>
+      <div className="gradient-divider" />
 
       <SearchBar
         query={query}

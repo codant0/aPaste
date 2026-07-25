@@ -37,6 +37,28 @@
   animation: fadeIn 0.15s ease-out forwards;
 }
 
+/* Star bounce animation for favorites */
+@keyframes starBounce {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.animate-star-bounce {
+  animation: starBounce 0.2s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+/* Gradient title dot */
+.title-dot {
+  background: linear-gradient(135deg, var(--accent), color-mix(in srgb, var(--accent), #ec4899 50%));
+}
+
+/* Gradient divider */
+.gradient-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border-subtle), transparent);
+}
+
 /* Smooth selection transition */
 .selection-indicator {
   transition: all 0.15s ease-out;

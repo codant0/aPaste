@@ -22,8 +22,8 @@ export function SearchBar({ query, onChange }: Props) {
 
   return (
     <div className="px-3 pt-3 pb-2">
-      <div className="flex items-center gap-2 bg-[var(--bg-input)] backdrop-blur-md border border-[var(--border)] rounded-lg px-3 py-2 focus-within:border-[var(--border-focus)] focus-within:bg-[var(--bg-input-focus)] transition-all duration-200">
-        <svg className="w-4 h-4 text-[var(--text-tertiary)] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="group flex items-center gap-2 bg-[var(--bg-input)] backdrop-blur-md border border-[var(--border)] rounded-lg px-3 h-9 focus-within:border-[var(--border-focus)] focus-within:bg-[var(--bg-input-focus)] focus-within:ring-2 focus-within:ring-[var(--ring-focus)] transition-all duration-200">
+        <svg className="w-4 h-4 text-[var(--text-tertiary)] group-focus-within:text-[var(--accent)] shrink-0 transition-colors duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
         <input
@@ -45,7 +45,7 @@ export function SearchBar({ query, onChange }: Props) {
             </svg>
           </button>
         )}
-        <kbd className="text-[10px] text-[var(--text-muted)] bg-[var(--kbd-bg)] px-1.5 py-0.5 rounded font-mono">Esc</kbd>
+        <kbd className="text-[10px] text-[var(--text-muted)] bg-[var(--kbd-bg)] border border-[var(--kbd-border)] px-1.5 py-0.5 rounded font-mono">Esc</kbd>
       </div>
     </div>
   );
