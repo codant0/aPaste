@@ -19,15 +19,17 @@ pub fn add_item(
     source_app: Option<&str>,
 ) -> Result<()> {
     // Check if content already exists anywhere in the database
-    if let Ok(existing_id) = conn.query_row(
-        "SELECT id FROM clipboard_items WHERE content_hash = ?1",
+    if let Ok((existing_id, existing_content, is_fav)) = conn.query_row(
+        "SELECT id, content, is_favorite FROM clipboard_items WHERE content_hash = ?1",
         params![content_hash],
-        |r| r.get::<_, i64>(0),
+        |r| Ok((r.get::<_, i64>(0)?, r.get::<_, String>(1)?, r.get::<_, bool>(2)?)),
     ) {
-        // Already exists: update timestamps to bring it to the top
+        // Already exists: delete old row and re-insert to move to front
+        // (new INSERT gets the highest id, so ORDER BY id DESC puts it first)
+        conn.execute("DELETE FROM clipboard_items WHERE id = ?1", params![existing_id])?;
         conn.execute(
-            "UPDATE clipboard_items SET created_at = datetime('now'), last_used_at = datetime('now') WHERE id = ?1",
-            params![existing_id],
+            "INSERT INTO clipboard_items (content, content_hash, source_app, is_favorite) VALUES (?1, ?2, ?3, ?4)",
+            params![existing_content, content_hash, source_app, is_fav],
         )?;
         return Ok(());
     }
@@ -148,13 +150,18 @@ mod tests {
     }
 
     #[test]
-    fn test_dedup_skips_consecutive_same_hash() {
+    fn test_dedup_existing_item_moves_to_front() {
         let conn = setup_db();
-        add_item(&conn, "hello", "hash1", None).unwrap();
-        add_item(&conn, "hello again", "hash1", None).unwrap(); // Same hash as last
+        add_item(&conn, "first", "hf", None).unwrap();
+        add_item(&conn, "second", "hs", None).unwrap();
+        add_item(&conn, "third", "ht", None).unwrap();
+
+        // "first" is now at the bottom. Copying it again should move it to the front.
+        add_item(&conn, "first again", "hf", None).unwrap();
 
         let items = get_recent(&conn, 10, 0).unwrap();
-        assert_eq!(items.len(), 1); // Second insert skipped
+        assert_eq!(items.len(), 3); // No new row added
+        assert_eq!(items[0].content, "first"); // Moved to front
     }
 
     #[test]
